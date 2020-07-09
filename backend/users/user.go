@@ -8,8 +8,8 @@ import (
 )
 
 type User struct {
-	FirstName string `json:"firstName`
-	LastName string `json:"lastName`
+	FirstName string `json:"firstName"`
+	LastName string `json:"lastName"`
 }
 
 func (user *User) setJSON(w http.ResponseWriter, r *http.Request) {
@@ -22,4 +22,13 @@ func (user *User) setJSON(w http.ResponseWriter, r *http.Request) {
 
 func (user User) getJSON() ([]byte, error) {
 	return json.MarshalIndent(user, "", "")
+}
+
+func GetUsers(w http.ResponseWriter, r *http.Request) {
+	people := []User{
+		User{"Mauricio", "Leal"},
+		User{"Nadia", "Ulanova"},
+		User{"Nichole", "Leal"},
+	}
+	json.NewEncoder(w).Encode(people)
 }
