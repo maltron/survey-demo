@@ -1,8 +1,44 @@
 package main
+// API Documentation
+// 
+// GET /user with Header: Content-type=application/json
+// List all existing Users
+//     returns: 200 Ok
+//     Returns an array of users 
+//  returns: 204 No Content
+//     when there is no data to get from
+//  returns: 406 Not Acceptable
+//     when there isn't a Header: Content-type=application/json
+//  returns: 500 Internal Server Error
+//     when it wasn unable to perform a SQL Query
+// PUT /user with Header: Content-type=application/json
+// Create a new User
+//   returns: 201 Created
+//   when a User was successfully created
+//  returns: 400 Bad Request
+//     when one of the fields are empty
+//  returns: 406 Not Acceptable
+//     when there isn't a Header: Content-type=application/json
+//  returns: 409 Conflict
+//     when there is another existing user with the same first and last name
+//  returns: 417 Expectation Failed
+//     The information received doesn't allow to be inserted into the database
+//  returns: 500 Internal Server Error
+//     when it wasn unable to perform a SQL Query
+// POST /user with Header: Content-type=application/json
+// Update an existing User
+//  returns: 406 Not Acceptable
+//     when there isn't a Header: Content-type=application/json
+//  returns: 400 Bad Request
+//     when one of the fields are empty
+//  returns: 417 Expectation Failed
+//     The information received doesn't allow to be inserted into the database
+
 
 import (
 	"fmt"
 	"log"
+	"os"
 	"net/http"
 	"github.com/gorilla/mux"
 	"github.com/maltron/survey-demo/backend/users"
@@ -10,23 +46,87 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 )
 
+const (
+	defaultSurveyPort string = "8080"
+	envSurveyPort string = "SURVEY_PORT"
+
+	defaultDatabaseUser string = "mauricio"
+	defaultDatabasePassword string = "maltron"
+	defaultDatabaseHost string = "127.0.0.1"
+	defaultDatabasePort string = "3306"
+	defaultDatabase string = "survey"
+
+	envDatabaseUser string = "SURVEY_DATABASE_USER"
+	envDatabasePassword string = "SURVEY_DATABASE_PASSWORD"
+	envDatabaseHost string = "SURVEY_DATABASE_HOST"
+	envDatabasePort string = "SURVEY_DATABASE_PORT"
+	envDatabase string = "SURVEY"
+)
+
 var (
 	database *sql.DB
-	error error
+	err error
 )
 
 func main() {
-	log.Println("SURVEY DEMO: Starting at Port :8080")
-
+	log.Println("Connecting to the database")
 	// Connecting to the database 
-	database, error = sql.Open("mysql", "mauricio:maltron@tcp(127.0.0.1:3306/chapter04")
-	fmt.Printf("%T %T\n", database, database)
-	if error != nil {
-		panic(error.Error())
+	database, err = sql.Open("mysql", databaseConnection())
+	if err != nil {
+		log.Fatal("Database Error.")
+		panic(err.Error())
+	}
+	// Testing if we can perform queries
+	err = database.Ping()
+	if err != nil {
+		log.Fatal("Database Error. Unable to connect. Ping failure")
+		panic(err.Error())
 	}
 	defer database.Close()
 
+	// Pass a reference of database to User Object
+	users.Database = database
+	
+	// Fetching Port number
+	port, ok := os.LookupEnv(envSurveyPort)
+	if !ok {
+		port = defaultSurveyPort
+	}
+	log.Printf("SURVEY DEMO: Starting at Port :%v\n", port)
+
 	router := mux.NewRouter()
 	router.HandleFunc("/user", users.GetUsers).Methods("GET")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	router.HandleFunc("/user", users.PutUser).Methods("PUT")
+	router.HandleFunc("/user", users.PostUser).Methods("POST")
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", port), router))
+}
+
+func databaseConnection() string {
+	username, ok := os.LookupEnv(envDatabaseUser)
+	if !ok {
+		username = defaultDatabaseUser
+	}
+
+	password, ok := os.LookupEnv(envDatabasePassword)
+	if !ok {
+		password = defaultDatabasePassword
+	}
+
+	host, ok := os.LookupEnv(envDatabaseHost)
+	if !ok {
+		host = defaultDatabaseHost
+	}
+
+	port, ok := os.LookupEnv(envDatabasePort)
+	if !ok {
+		port = defaultDatabasePort
+	}	
+
+	database, ok := os.LookupEnv(envDatabase)
+	if !ok {
+		database = defaultDatabase
+	}
+
+	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v",
+				username, password, host, port, database)
 }
