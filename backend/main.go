@@ -109,6 +109,7 @@ func main() {
 	log.Printf("SURVEY DEMO: Starting at Port :%v\n", port)
 
 	router := mux.NewRouter()
+	router.HandleFunc("/user/{id}", users.GetUser).Methods("GET")
 	router.HandleFunc("/user", users.GetUsers).Methods("GET")
 	router.HandleFunc("/user", users.PutUser).Methods("PUT")
 	router.HandleFunc("/user", users.PostUser).Methods("POST")

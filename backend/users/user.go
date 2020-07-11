@@ -1,6 +1,7 @@
 package users
 
 import (
+	"github.com/gorilla/mux"
 	"fmt"
 	"strings"
 	"log"
@@ -261,6 +262,46 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Accept", "application/json")
 	json.NewEncoder(w).Encode(users)
+}
+
+// SINGLE GET SINGLE GET SINGLE GET SINGLE GET SINGLE GET SINGLE GET 
+//  SINGLE GET SINGLE GET SINGLE GET SINGLE GET SINGLE GET SINGLE GET 
+func GetUser(w http.ResponseWriter, r *http.Request) {
+	ID, ok := mux.Vars(r)["id"]
+	if !ok {
+		reportError(w, http.StatusInternalServerError, 
+			"500 Internal Server Error (Unable to fetch ID from URL)", nil)
+		return 
+	}
+
+	query := fmt.Sprintf("select ID, firstName, lastName from survey_user where ID = %v", ID)
+	rows, err := Database.Query(query);
+	defer rows.Close()
+	if err != nil {
+		// Error: 500 - Internal Server Error
+		// PENDING: It seems there is no way to return 500 in case
+		//          of something happened to the query
+		reportError(w, http.StatusInternalServerError, 
+			fmt.Sprintf("500 Internal Server Error (query: %v)\n", query), err)
+		return 
+	}	
+
+	var user User
+	if rows.Next() {
+		err := rows.Scan(&user.ID, &user.FirstName, &user.LastName)
+		if err != nil {
+			// PENDING: Returning a better code information: 500 ?
+			panic(err.Error())
+		}
+	} else {
+		reportError(w, http.StatusNotFound, 
+				fmt.Sprintf("404 Not Found (ID: %v)\n", ID), nil)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Accept", "application/json")
+	json.NewEncoder(w).Encode(user)
 }
 
 func isContentTypeJSON(w http.ResponseWriter, r *http.Request) bool {
