@@ -46,51 +46,119 @@ func (user User) encodeJSON(w http.ResponseWriter) {
 	json.NewEncoder(w).Encode(user)
 }
 
-func (user *User) decodeAndValidate(w http.ResponseWriter, r *http.Request) (bool, error) {
+func (user *User) decodeAndValidate(w http.ResponseWriter, r *http.Request) bool {
 	error := user.decodeJSON(r)
 	if error != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Printf("### 400 Bad Request: ????\n")
-		return false, error
+		reportError(w, http.StatusBadRequest, "400 Bad Request", error)
+		return false
 	}
 
 	// Validate if there are both firstName and lastName
 	if user.isEmpty() {
 		// If one of the fields are missing 
 		// 400 Bad Request: One of the fields are empty
-		log.Printf("### 400 Bad Request: Insufficient User Information: %v\n", user.String())
-		w.WriteHeader(http.StatusBadRequest)
-		return false, error
+		reportError(w, http.StatusBadRequest, 
+			fmt.Sprintf("400 Bad Request (Insufficient User Information: %v)\n", 
+			user.String()), nil)
+		return false
 	}
 
 	// Check if all the information is valid and fits into 
 	// the database
 	if !user.isValid() {
-		log.Printf("### 417 Expectation Failed: This User is not Valid: %v\n", user.String())
-		w.WriteHeader(http.StatusExpectationFailed)
-		return false, error 
+		reportError(w, http.StatusExpectationFailed, 
+			fmt.Sprintf("417 Status Expectation Failed (User is not Valid: %v)\n", 
+			user.String()), nil)
+		return false
 	}
 
-	return true, nil
+	return true
+}
+
+// DELETE DELETE DELETE DELETE DELETE DELETE DELETE DELETE DELETE DELETE 
+//  DELETE DELETE DELETE DELETE DELETE DELETE DELETE DELETE DELETE DELETE 
+func DeleteUser(w http.ResponseWriter, r *http.Request) {
+	handlePostDelete(w, r, true)
 }
 
 // POST UPDATE POST UPDATE POST UPDATE POST UPDATE POST UPDATE 
 //  POST UPDATE POST UPDATE POST UPDATE POST UPDATE POST UPDATE 
 func PostUser(w http.ResponseWriter, r *http.Request) {
+	handlePostDelete(w, r, false)
+}
+
+// A single function to handle both Post(UPDATE) and Delete(DELETE)
+func handlePostDelete(w http.ResponseWriter, r *http.Request, isDelete bool) {
 	// If Content-type is not "application/json", 
 	// return 406 - Not Acceptable
-	if !checkContentTypeJSON(w, r) {
+	if !isContentTypeJSON(w, r) {
 		return
 	}
 
 	var user User
-	ok, error := user.decodeAndValidate(w, r)
-	if !ok {
+	if !user.decodeAndValidate(w, r) {
+		// Unable to decode the User and make sure is a valid 
+		// All the HTTP Response codes were already performed 
 		return
 	}
 
-	
+	// In order to update, a User ID must be > 0
+	if user.ID == 0 {
+		reportError(w, http.StatusExpectationFailed, 
+			fmt.Sprintf("417 Status Expectation Failed (User ID not valid: %v)\n", 
+			user.String()), nil)
+		return
+	}
 
+	// Step 1/3: Prepare a statement for updating
+	var query string
+	if isDelete {
+		query = "delete from survey_user where ID = ?"
+	} else {
+		query = "update survey_user set firstName=?,lastName=? where ID = ?"
+	}
+	statement, err := Database.Prepare(query)
+	defer statement.Close()
+	if err != nil {
+		reportError(w, http.StatusInternalServerError, 
+		fmt.Sprintf("500 Internal Server Error (Unable to Prepare Statement: %v)\n", query), err)
+		return 
+	}
+
+	// Step 2/3: Execute the Prepared Statement
+	var result sql.Result
+	if isDelete {
+		result, err = statement.Exec(user.ID)
+	} else {
+		result, err = statement.Exec(user.FirstName, user.LastName, user.ID)
+	}
+	if err != nil {
+		// Check if there is a duplication
+		//  409 Conflict
+		if strings.Contains(err.Error(), "Duplicate") {
+			reportError(w, http.StatusConflict, "409 Conflict", err)
+		} else {
+			reportError(w, http.StatusInternalServerError, 
+			"500 Internal Server Error (Executing Prepared Statement)", err)
+		}
+		return
+	}
+
+	// Step 3/3: The content was inserted and notify 
+	//      with 201 - Created
+	// log.Println("Step 3/3")
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		reportError(w, http.StatusInternalServerError, 
+			"500 Internal Server Error (Rows Affected)", err)
+		return
+	}
+	if rowsAffected > 0 {
+		w.WriteHeader(http.StatusAccepted)
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
+	user.encodeJSON(w)	
 }
 
 // PUT INSERT PUT INSERT PUT INSERT PUT INSERT PUT INSERT 
@@ -98,13 +166,14 @@ func PostUser(w http.ResponseWriter, r *http.Request) {
 func PutUser(w http.ResponseWriter, r *http.Request) {
 	// If Content-type is not "application/json", 
 	// return 406 - Not Acceptable
-	if !checkContentTypeJSON(w, r) {
+	if !isContentTypeJSON(w, r) {
 		return
 	}
  
 	var user User
-	ok, error := user.decodeAndValidate(w, r)
-	if !ok {
+	if !user.decodeAndValidate(w, r) {
+		// Unable to decode the User and make sure is a valid 
+		// All the HTTP Response codes were already performed 
 		return
 	}
 
@@ -114,8 +183,8 @@ func PutUser(w http.ResponseWriter, r *http.Request) {
 	statement, err := Database.Prepare(query)
 	defer statement.Close()
 	if err != nil {
-		log.Printf("Unable to Prepare Statement: %v\n", query)
-		internalServerError(w, err, query)
+		reportError(w, http.StatusInternalServerError, 
+			fmt.Sprintf("500 Internal Server Error (Unable to Prepare Statement: %v)\n", query), err)
 		return
 	}
 
@@ -126,10 +195,10 @@ func PutUser(w http.ResponseWriter, r *http.Request) {
 		// Check if there is a duplication
 		//  409 Conflict
 		if strings.Contains(err.Error(), "Duplicate") {
-			log.Printf("### 409 Conflict: %v\n", err.Error())
-			w.WriteHeader(http.StatusConflict)
+			reportError(w, http.StatusConflict, "409 Conflict", err)
 		} else {
-			internalServerError(w, err, query)
+			reportError(w, http.StatusInternalServerError, 
+				"500 Internal Server Error (Executing Prepared Statement)", err)
 		}
 		return
 	}
@@ -138,7 +207,8 @@ func PutUser(w http.ResponseWriter, r *http.Request) {
 	// and update into the struct 
 	user.ID, err = result.LastInsertId()
 	if err != nil {
-		internalServerError(w, err, "result.LastInsertId()")
+		reportError(w, http.StatusInternalServerError, 
+			"Internal Server Error (result.LastInsertId())", err)
 		return
 	}
 
@@ -154,11 +224,11 @@ func PutUser(w http.ResponseWriter, r *http.Request) {
 func GetUsers(w http.ResponseWriter, r *http.Request) {
 	// If Content-type is not "application/json", 
 	// return 406 - Not Acceptable
-	if !checkContentTypeJSON(w, r) {
+	if !isContentTypeJSON(w, r) {
 	   return
 	}
 
-	// Query Database for Users
+	// Query Database for Users, sorted by first,last name
 	const query string = "select ID, firstName, lastName from survey_user order by firstName, lastname"
 	rows, err := Database.Query(query);
 	defer rows.Close()
@@ -166,7 +236,8 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 		// Error: 500 - Internal Server Error
 		// PENDING: It seems there is no way to return 500 in case
 		//          of something happened to the query
-		internalServerError(w, err, query)
+		reportError(w, http.StatusInternalServerError, 
+			fmt.Sprintf("500 Internal Server Error (query: %v)\n", query), err)
 		return 
 	}
 	
@@ -192,9 +263,7 @@ func GetUsers(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(users)
 }
 
-func decodeAndValidateUser(r *http.R)
-
-func checkContentTypeJSON(w http.ResponseWriter, r *http.Request) bool {
+func isContentTypeJSON(w http.ResponseWriter, r *http.Request) bool {
 	if r.Header.Get("Content-type") != "application/json" {
 		w.WriteHeader(http.StatusNotAcceptable)
 		return false 
@@ -203,9 +272,11 @@ func checkContentTypeJSON(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
-func internalServerError(w http.ResponseWriter, error error, query string) {
-	// 500 - Internal Server Error
-	w.WriteHeader(http.StatusInternalServerError)
-	log.Printf("### 500 Internal Server Error: Unable to perform query: %v\n", query)
-	log.Println(error.Error())
+func reportError(w http.ResponseWriter, httpStatusCode int, description string, err error) {
+	w.WriteHeader(httpStatusCode)
+	if err != nil {
+		log.Printf("### %v: %v\n", description, err.Error())
+	} else {
+		log.Printf("### %v\n", description)
+	}
 }

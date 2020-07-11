@@ -22,17 +22,31 @@ package main
 //  returns: 409 Conflict
 //     when there is another existing user with the same first and last name
 //  returns: 417 Expectation Failed
-//     The information received doesn't allow to be inserted into the database
+//     The User is not a valid one (size greater than estipulated by the database)
 //  returns: 500 Internal Server Error
 //     when it wasn unable to perform a SQL Query
 // POST /user with Header: Content-type=application/json
 // Update an existing User
+//   returns: 202 Accepted
+//   when a User was successfully updated
+//  returns: 204 No Content
+//     when no rows were affected
 //  returns: 406 Not Acceptable
 //     when there isn't a Header: Content-type=application/json
+//  returns: 409 Conflict
+//     when there is another existing user with the same first and last name
 //  returns: 400 Bad Request
-//     when one of the fields are empty
+//     when one of the fields are empty OR user.ID == 0
 //  returns: 417 Expectation Failed
-//     The information received doesn't allow to be inserted into the database
+//     The User is not a valid one (size greater than estipulated by the database)
+// DELETE /user with Header: Content-type=application/json
+// Delete an existing User
+//   returns: 202 Accepted
+//   when a User was successfully deleted
+//  returns: 204 No Content
+//     when no rows were affected
+//  returns: 417 Expectation Failed
+//     The User is not a valid one (size greater than estipulated by the database)
 
 
 import (
@@ -98,6 +112,7 @@ func main() {
 	router.HandleFunc("/user", users.GetUsers).Methods("GET")
 	router.HandleFunc("/user", users.PutUser).Methods("PUT")
 	router.HandleFunc("/user", users.PostUser).Methods("POST")
+	router.HandleFunc("/user", users.DeleteUser).Methods("DELETE")
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", port), router))
 }
 
@@ -127,6 +142,6 @@ func databaseConnection() string {
 		database = defaultDatabase
 	}
 
-	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v",
+	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?charset=utf8mb4",
 				username, password, host, port, database)
 }
