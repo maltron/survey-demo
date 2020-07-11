@@ -1,7 +1,10 @@
 # create database survey character set utf8 collate utf8_general_ci;
+alter database survey character set utf8mb4 collate utf8mb4_unicode_ci;
 drop table if exists survey_demo cascade;
-create table if not exists survey_user(ID int not null auto_increment, firstName varchar(50) not null, lastName varchar(50) not null, unique(firstName, lastName), primary key(ID));
+create table if not exists survey_user(ID int not null auto_increment, firstName varchar(50) not null, lastName varchar(50) not null, unique(firstName, lastName), primary key(ID)) default charset utf8mb4 collate utf8mb4_unicode_ci;
 # Adding some users for testing
+insert into survey_user(firstName, lastName) values('Anão', 'Caçamba');
+insert into survey_user(firstName, lastName) values('你好', '世界');
 insert into survey_user(firstName, lastName) values('John','Smith');
 insert into survey_user(firstName, lastName) values('Ada','Lovelace');
 insert into survey_user(firstName, lastName) values('Steve','Jobs');
