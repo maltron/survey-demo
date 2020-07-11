@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: survey-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: survey-demo
+  template:
+    metadata:
+      annotations:
+        readiness.status.sidecar.istio.io/applicationPorts: ""
+      labels:
+        app: survey-demo
+    spec:
+      containers:
+        - name: survey-demo
+          image: quay.io/maltron/survey-demo:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          securityContext:
+            privileged: false
+          env:
+            - name: SURVEY_PORT
+              value: "8080"
+            - name: SURVEY_DATABASE_USER
+              value: "mauricio"
+            - name: SURVEY_DATABASE_PASSWORD
+              value: "maltron"
+            - name: SURVEY_DATABASE_HOST
+              value: "mysql"
+            - name: SURVEY_DATABASE_PORT
+              value: "3306"
+            - name: SURVEY_DATABASE
+              value: "survey"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: survey-demo
+  labels:
+    app: survey-demo
+spec:
+  ports:
+    - name: http
+      port: 8080
+  selector:
+    app: survey-demo
+
+--- 
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app: survey-demo
+  name: survey-demo
+spec:
+  to:
+    kind: Service
+    name: survey-demo
