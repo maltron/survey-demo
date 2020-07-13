@@ -35,6 +35,8 @@ spec:
               value: "3306"
             - name: SURVEY_DATABASE
               value: "survey"
+            - name: NOT_IN_PRODUCTION
+              value: "true"
 
 ---
 apiVersion: v1
