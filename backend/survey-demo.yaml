@@ -4,8 +4,9 @@ labels:
   template: survey-demo
 message: |-
   This will create the Survey Demo Application with a MySQL Database
-  A database will be created to storage all the data needed. 
+  In order to use, just type: $ oc new-app survey-demo.yaml
 
+  A database will be created to storage all the data needed. 
   Connection URL (in golang): ${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${DATABASE_SERVICE_NAME}:3306)/${MYSQL_DATABASE}?charset=utf8mb4
            Database Username: ${MYSQL_USER}
            Database Password: ${MYSQL_PASSWORD}
