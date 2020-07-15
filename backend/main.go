@@ -1,10 +1,11 @@
 package main
+
 // API Documentation
-// 
+//
 // GET /user with Header: Content-type=application/json
 // List all existing Users
 //     returns: 200 Ok
-//     Returns an array of users 
+//     Returns an array of users
 //  returns: 204 No Content
 //     when there is no data to get from
 //  returns: 406 Not Acceptable
@@ -48,43 +49,46 @@ package main
 //  returns: 417 Expectation Failed
 //     The User is not a valid one (size greater than estipulated by the database)
 
-
 import (
+	"database/sql"
 	"fmt"
 	"log"
-	"os"
 	"net/http"
-	"github.com/gorilla/mux"
-	"github.com/maltron/survey-demo/backend/users"
-	"database/sql"
+	"os"
+	"strconv"
+
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/gorilla/mux"
+	"github.com/gorilla/handlers"
+	"github.com/maltron/survey-demo/backend/users"
 )
 
 const (
 	defaultSurveyPort string = "8080"
-	envSurveyPort string = "SURVEY_PORT"
+	envSurveyPort     string = "SURVEY_PORT"
 
-	defaultDatabaseUser string = "mauricio"
+	defaultDatabaseUser     string = "mauricio"
 	defaultDatabasePassword string = "maltron"
-	defaultDatabaseHost string = "127.0.0.1"
-	defaultDatabasePort string = "3306"
-	defaultDatabase string = "survey"
+	defaultDatabaseHost     string = "127.0.0.1"
+	defaultDatabasePort     string = "3306"
+	defaultDatabase         string = "survey"
 
-	envDatabaseUser string = "SURVEY_DATABASE_USER"
+	envDatabaseUser     string = "SURVEY_DATABASE_USER"
 	envDatabasePassword string = "SURVEY_DATABASE_PASSWORD"
-	envDatabaseHost string = "SURVEY_DATABASE_HOST"
-	envDatabasePort string = "SURVEY_DATABASE_PORT"
-	envDatabase string = "SURVEY_DATABASE"
+	envDatabaseHost     string = "SURVEY_DATABASE_HOST"
+	envDatabasePort     string = "SURVEY_DATABASE_PORT"
+	envDatabase         string = "SURVEY_DATABASE"
+	envNotInProduction  string = "NOT_IN_PRODUCTION"
 )
 
 var (
 	database *sql.DB
-	err error
+	err      error
 )
 
 func main() {
 	log.Println("Connecting to the database")
-	// Connecting to the database 
+	// Connecting to the database
 	database, err = sql.Open("mysql", databaseConnection())
 	if err != nil {
 		log.Fatal("Database Error.")
@@ -100,7 +104,18 @@ func main() {
 
 	// Pass a reference of database to User Object
 	users.Database = database
-	
+
+	// Environment variable for Development purposes
+	notInProduction, ok := os.LookupEnv(envNotInProduction)
+	if ok {
+		value, err := strconv.ParseBool(notInProduction)
+
+		if err == nil {
+			users.NotInProduction = value
+		}
+	}
+	log.Printf("\"Not In Production\" mode: %v\n", users.NotInProduction)
+
 	// Fetching Port number
 	port, ok := os.LookupEnv(envSurveyPort)
 	if !ok {
@@ -109,12 +124,21 @@ func main() {
 	log.Printf("SURVEY DEMO: Starting at Port :%v\n", port)
 
 	router := mux.NewRouter()
+
+	// router.HandleFunc("/user", users.Cors).Methods("OPTIONS")
 	router.HandleFunc("/user/{id}", users.GetUser).Methods("GET")
 	router.HandleFunc("/user", users.GetUsers).Methods("GET")
 	router.HandleFunc("/user", users.PutUser).Methods("PUT")
 	router.HandleFunc("/user", users.PostUser).Methods("POST")
 	router.HandleFunc("/user", users.DeleteUser).Methods("DELETE")
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", port), router))
+
+	handler := handlers.CORS(
+		handlers.AllowedOrigins([]string{"*"}),
+		handlers.AllowedHeaders([]string{"content-type"}),
+		handlers.AllowedMethods([]string{"GET", "PUT","POST","DELETE"}),
+	)(router)
+	
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", port), handler))
 }
 
 func databaseConnection() string {
@@ -136,7 +160,7 @@ func databaseConnection() string {
 	port, ok := os.LookupEnv(envDatabasePort)
 	if !ok {
 		port = defaultDatabasePort
-	}	
+	}
 
 	database, ok := os.LookupEnv(envDatabase)
 	if !ok {
@@ -144,5 +168,5 @@ func databaseConnection() string {
 	}
 
 	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?charset=utf8mb4",
-				username, password, host, port, database)
+		username, password, host, port, database)
 }
