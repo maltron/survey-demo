@@ -1,0 +1,1 @@
+oc port-forward $(oc get pods -o jsonpath='{.items[?(@.metadata.labels.name=="survey-mysql")].metadata.name}') $(oc get service/survey-mysql -o jsonpath='{.spec.ports[?(.name=="survey-mysql")].port}'):$(oc get service/survey-mysql -o jsonpath='{.spec.ports[?(.name=="survey-mysql")].port}')
