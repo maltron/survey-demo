@@ -55,7 +55,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
@@ -104,17 +103,6 @@ func main() {
 
 	// Pass a reference of database to User Object
 	users.Database = database
-
-	// Environment variable for Development purposes
-	notInProduction, ok := os.LookupEnv(envNotInProduction)
-	if ok {
-		value, err := strconv.ParseBool(notInProduction)
-
-		if err == nil {
-			users.NotInProduction = value
-		}
-	}
-	log.Printf("\"Not In Production\" mode: %v\n", users.NotInProduction)
 
 	// Fetching Port number
 	port, ok := os.LookupEnv(envSurveyPort)

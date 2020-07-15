@@ -12,7 +12,6 @@ import (
 )
 
 var Database *sql.DB
-var NotInProduction bool = false
 
 type User struct {
 	ID        int64  `json:"ID"`
