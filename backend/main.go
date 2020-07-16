@@ -77,7 +77,6 @@ const (
 	envDatabaseHost     string = "SURVEY_DATABASE_HOST"
 	envDatabasePort     string = "SURVEY_DATABASE_PORT"
 	envDatabase         string = "SURVEY_DATABASE"
-	envNotInProduction  string = "NOT_IN_PRODUCTION"
 )
 
 var (

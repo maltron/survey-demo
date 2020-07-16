@@ -3,6 +3,11 @@ kind: Template
 labels:
   template: survey-demo
 message: |-
+  ____  _     ____  _     ________  _   ____  _____ _      ____ 
+  / ___\/ \ /\/  __\/ \ |\/  __/\  \//  /  _ \/  __// \__/|/  _ \
+  |    \| | |||  \/|| | //|  \   \  /   | | \||  \  | |\/||| / \|
+  \___ || \_/||    /| \// |  /_  / /    | |_/||  /_ | |  ||| \_/|
+  \____/\____/\_/\_\\__/  \____\/_/     \____/\____\\_/  \|\____/                                                                
   This will create the Survey Demo Application with a MySQL Database
   In order to use, just type: $ oc new-app survey-demo.yaml
 
