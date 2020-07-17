@@ -85,6 +85,11 @@ var (
 )
 
 func main() {
+	log.Println("____  _     ____  _     ________  _   ____  _____ _      ____ ")
+	log.Println("/ ___\\/ \\ /\\/  __\\/ \\ |\\/  __/\\  \\//  /  _ \\/  __// \\__/|/  _ \\")
+	log.Println("|    \\| | |||  \\/|| | //|  \\   \\  /   | | \\||  \\  | |\\/||| / \\|")
+	log.Println("\\___ || \\_/||    /| \\// |  /_  / /    | |_/||  /_ | |  ||| \\_/|")
+	log.Println("\\____/\\____/\\_/\\_\\\\__/  \\____\\/_/     \\____/\\____\\_/   \\|\\____/")
 	log.Println("Connecting to the database")
 	// Connecting to the database
 	database, err = sql.Open("mysql", databaseConnection())
