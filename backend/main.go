@@ -89,7 +89,7 @@ func main() {
 	log.Println("/ ___\\/ \\ /\\/  __\\/ \\ |\\/  __/\\  \\//  /  _ \\/  __// \\__/|/  _ \\")
 	log.Println("|    \\| | |||  \\/|| | //|  \\   \\  /   | | \\||  \\  | |\\/||| / \\|")
 	log.Println("\\___ || \\_/||    /| \\// |  /_  / /    | |_/||  /_ | |  ||| \\_/|")
-	log.Println("\\____/\\____/\\_/\\_\\\\__/  \\____\\/_/     \\____/\\____\\_/   \\|\\____/")
+	log.Println("\\____/\\____/\\_/\\_\\\\__/  \\____\\/_/     \\____/\\____\\\\_/  \\|\\____/")
 	log.Println("Connecting to the database")
 	// Connecting to the database
 	database, err = sql.Open("mysql", databaseConnection())
@@ -104,6 +104,15 @@ func main() {
 		panic(err.Error())
 	}
 	defer database.Close()
+
+	// Creating basic tables
+	log.Println("Creating tables")
+	rows, err := database.Query("create table if not exists survey_user(ID int not null auto_increment, firstName varchar(50) not null, lastName varchar(50) not null, unique(firstName, lastName), primary key(ID)) default charset utf8mb4 collate utf8mb4_unicode_ci")
+	defer rows.Close() 
+	if err != nil {
+		log.Fatal("Database Error. Unable to create basic tables")
+		panic(err.Error())
+	}
 
 	// Pass a reference of database to User Object
 	users.Database = database
