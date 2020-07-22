@@ -14,7 +14,7 @@ const App: React.FunctionComponent = () => (
 {/* //       <Switch>
 //         <Route exact path="/" component={Register} />
 //         <Route exact path="/survey" component={ */}
-            <Question question="What is the capital of China ?" 
+            <Question question="What is the capital of China ?" timer={10} points={50}
             answers={[
                 { "id": "0", "answer": "Shanghai", "is_correct": false },
                 { "id": "1", "answer": "Beijing", "is_correct": true },
