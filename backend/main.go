@@ -55,10 +55,12 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"flag"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/handlers"
+	"github.com/gorilla/websocket"
 	"github.com/maltron/survey-demo/backend/users"
 )
 
@@ -83,8 +85,47 @@ var (
 	database *sql.DB
 	err      error
 )
+// WEBSOCKET: TESTING
+var upgrader = websocket.Upgrader{} // Use Default values
+
+func echo(w http.ResponseWriter, r *http.Request) {
+	// log.Println(">>> WEBSOCKET Echo Upgrading")
+	// for name, value := range r.Header {
+	// 	log.Printf("Header %v:%v\n", name, value)
+	// }
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+	connection, err := upgrader.Upgrade(w, r, nil);
+	if err != nil {
+		log.Println("### ERROR UPGRADE:", err)
+		panic(err.Error);
+	}
+	defer connection.Close();
+
+	log.Println(">>> WEBSOCKET Echo Looping")
+	for {
+		log.Println(">>> WEBSOCKET Echo Reading Message")
+		// READ THE MESSAGE 
+		mt, message, err := connection.ReadMessage();
+		if err != nil {
+			log.Println("### ERROR READ:", err)
+			break;
+		}
+		
+		// WRITE THE MESSAGE BACK
+		log.Printf(">>> WEBSOCKET Message mt: %d Received:%s\n", mt, message)
+		log.Println(">>> WEBSOCKET Writing the same message back")
+		err = connection.WriteMessage(mt, message);
+		if err != nil {
+			log.Println("### ERROR WRITE: ", err);
+			break; 
+		}
+		log.Println(">>> WEBSOCKET Sent it")
+	}
+}
 
 func main() {
+	var addr = flag.String("addr", "localhost:8080", "http service address")
+	log.Printf("addr (%T) %v\n", addr, addr)
 	log.Println("____  _     ____  _     ________  _   ____  _____ _      ____ ")
 	log.Println("/ ___\\/ \\ /\\/  __\\/ \\ |\\/  __/\\  \\//  /  _ \\/  __// \\__/|/  _ \\")
 	log.Println("|    \\| | |||  \\/|| | //|  \\   \\  /   | | \\||  \\  | |\\/||| / \\|")
@@ -126,12 +167,15 @@ func main() {
 
 	router := mux.NewRouter()
 
-	// router.HandleFunc("/user", users.Cors).Methods("OPTIONS")
+	// router.HandleFunc("/echo", users.Cors).Methods("OPTIONS")
 	router.HandleFunc("/user/{id}", users.GetUser).Methods("GET")
 	router.HandleFunc("/user", users.GetUsers).Methods("GET")
 	router.HandleFunc("/user", users.PutUser).Methods("PUT")
 	router.HandleFunc("/user", users.PostUser).Methods("POST")
 	router.HandleFunc("/user", users.DeleteUser).Methods("DELETE")
+
+	// WEBSOCKET: TESTING
+	router.HandleFunc("/echo", echo)
 
 	handler := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
@@ -140,6 +184,7 @@ func main() {
 	)(router)
 	
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", port), handler))
+	// log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%v", port), "server.crt", "server.key", handler))
 }
 
 func databaseConnection() string {
