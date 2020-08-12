@@ -46,46 +46,7 @@ module.exports = env => {
           }
         },
         {
-          test: /\.svg$/,
-          include: input => input.indexOf('background-filter.svg') > 1,
-          use: [
-            {
-              loader: 'url-loader',
-              options: {
-                limit: 5000,
-                outputPath: 'svgs',
-                name: '[name].[ext]',
-              }
-            }
-          ]
-        },
-        {
-          test: /\.svg$/,
-          // only process SVG modules with this loader if they live under a 'bgimages' directory
-          // this is primarily useful when applying a CSS background using an SVG
-          include: input => input.indexOf(BG_IMAGES_DIRNAME) > -1,
-          use: {
-            loader: 'svg-url-loader',
-            options: {}
-          }
-        },
-        {
-          test: /\.svg$/,
-          // only process SVG modules with this loader when they don't live under a 'bgimages',
-          // 'fonts', or 'pficon' directory, those are handled with other loaders
-          include: input => (
-            (input.indexOf(BG_IMAGES_DIRNAME) === -1) &&
-            (input.indexOf('fonts') === -1) &&
-            (input.indexOf('background-filter') === -1) &&
-            (input.indexOf('pficon') === -1)
-          ),
-          use: {
-            loader: 'raw-loader',
-            options: {}
-          }
-        },
-        {
-          test: /\.(jpg|jpeg|png|gif)$/i,
+          test: /\.(jpg|jpeg|png|gif|svg)$/i,
           include: [
             path.resolve(__dirname, 'src'),
             path.resolve(__dirname, 'node_modules/patternfly'),
