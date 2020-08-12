@@ -1,19 +1,21 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { App } from '@app/index';
+import "@patternfly/react-core/dist/styles/base.css";
+import "./survey-demo.css";
+import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
+import { Login } from "@app/Login/Login";
+import { MainPage } from "@app/MainPage/MainPage";
 
-if (process.env.NODE_ENV !== "production") {
-  const config = {
-    rules: [
-      {
-        id: 'color-contrast',
-        enabled: false
-      }
-    ]
-  };
-  // eslint-disable-next-line @typescript-eslint/no-var-requires, no-undef
-  const axe = require("react-axe");
-  axe(React, ReactDOM, 1000, config);
-}
+const App: React.FunctionComponent = () => {
+  return (
+    <Router>
+      <Switch>
+        <Route exact path="/login" component={Login}/>
+        <Route exact path="/main" component={MainPage}/>
+      </Switch>
+    </Router>
+  )
+};
+
 
 ReactDOM.render(<App />, document.getElementById("root") as HTMLElement);
