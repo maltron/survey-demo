@@ -7,16 +7,18 @@
       "label": "Run",
       "type": "shell",
       "command": "go run main.go",
-      "group": {
-        "kind": "build",
-        "isDefault": true
-      }
+      "group": "build",
+      "problemMatcher": []
     },
     {
       "label": "Docker Build & Push",
       "type": "shell",
       "command": "docker build --rm --force-rm --no-cache --tag quay.io/maltron/survey-demo:latest ${workspaceFolder} && docker push quay.io/maltron/survey-demo:latest",
-      "problemMatcher": []
+      "problemMatcher": [],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
     }
   ]
 }

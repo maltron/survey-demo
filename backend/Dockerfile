@@ -4,7 +4,10 @@ ENV GOPATH=/survey \
     SOURCE=/survey/src/github.com/maltron/survey-demo/backend/
 ADD . $SOURCE
 RUN apk --no-cache add git && \
-    go get github.com/gorilla/mux github.com/gorilla/handlers github.com/go-sql-driver/mysql && \
+    go get github.com/gorilla/mux \
+           github.com/gorilla/handlers \
+           github.com/go-sql-driver/mysql \
+           github.com/gorilla/websocket && \
     cd $SOURCE && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /survey/survey-demo .
 
 FROM alpine:latest

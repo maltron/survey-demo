@@ -51,16 +51,16 @@ package main
 
 import (
 	"database/sql"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"flag"
 
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/gorilla/mux"
 	"github.com/gorilla/handlers"
-	"github.com/gorilla/websocket"
+	"github.com/gorilla/mux"
+	"github.com/maltron/survey-demo/backend/survey"
 	"github.com/maltron/survey-demo/backend/users"
 )
 
@@ -85,48 +85,63 @@ var (
 	database *sql.DB
 	err      error
 )
-// WEBSOCKET: TESTING
-var upgrader = websocket.Upgrader{} // Use Default values
 
-func echo(w http.ResponseWriter, r *http.Request) {
-	// log.Println(">>> WEBSOCKET Echo Upgrading")
-	// for name, value := range r.Header {
-	// 	log.Printf("Header %v:%v\n", name, value)
-	// }
-	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-	connection, err := upgrader.Upgrade(w, r, nil);
-	if err != nil {
-		log.Println("### ERROR UPGRADE:", err)
-		panic(err.Error);
-	}
-	defer connection.Close();
+// // WEBSOCKET: TESTING
+// var upgrader = websocket.Upgrader{} // Use Default values
 
-	log.Println(">>> WEBSOCKET Echo Looping")
-	for {
-		log.Println(">>> WEBSOCKET Echo Reading Message")
-		// READ THE MESSAGE 
-		mt, message, err := connection.ReadMessage();
-		if err != nil {
-			log.Println("### ERROR READ:", err)
-			break;
-		}
-		
-		// WRITE THE MESSAGE BACK
-		log.Printf(">>> WEBSOCKET Message mt: %d Received:%s\n", mt, message)
-		log.Println(">>> WEBSOCKET Writing the same message back")
-		err = connection.WriteMessage(mt, message);
-		if err != nil {
-			log.Println("### ERROR WRITE: ", err);
-			break; 
-		}
-		log.Println(">>> WEBSOCKET Sent it")
-	}
-}
+// type Command struct {
+// 	Command string `json:"command"`
+// 	Data    string `json:"data"`
+// }
+
+// func echo(w http.ResponseWriter, r *http.Request) {
+// 	log.Println("WEBSOCKET BEGIN >>>>>>>>>>>>")
+// 	// log.Println(">>> WEBSOCKET Echo Upgrading")
+// 	// for name, value := range r.Header {
+// 	// 	log.Printf("Header %v:%v\n", name, value)
+// 	// }
+// 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+// 	connection, err := upgrader.Upgrade(w, r, nil);
+// 	if err != nil {
+// 		log.Println("### ERROR UPGRADE:", err)
+// 		panic(err.Error);
+// 	}
+// 	defer connection.Close();
+
+// 	for {
+// 		log.Println(">>> WEBSOCKET BEGIN LOOP #####")
+// 		// READ THE MESSAGE
+// 		messageType, message, err := connection.ReadMessage();
+// 		if err != nil {
+// 			log.Println("### ERROR READ:", err)
+// 			break;
+// 		}
+
+// 		command := Command{}
+// 		errJSON := json.Unmarshal(message, &command);
+// 		if errJSON != nil {
+// 			log.Println("### JSON ERROR:", errJSON)
+// 		}
+// 		log.Printf(">>> WEBSOCKET Command: %v Data: %v\n", command.Command, command.Data)
+
+// 		// WRITE THE MESSAGE BACK
+// 		log.Printf(">>> WEBSOCKET Message messageType: %d Received:%s Type:%T\n",
+// 															messageType, message, message)
+// 		log.Println(">>> WEBSOCKET Writing the same message back")
+// 		err = connection.WriteMessage(messageType, message);
+// 		if err != nil {
+// 			log.Println("### ERROR WRITE: ", err);
+// 			break;
+// 		}
+// 		log.Println(">>> WEBSOCKET END LOOP #####")
+// 	}
+// 	log.Println("WEBSOCKET END <<<<<<<<<<<<<")
+// }
 
 func main() {
 	var addr = flag.String("addr", "localhost:8080", "http service address")
 	log.Printf("addr (%T) %v\n", addr, addr)
-	log.Println("____  _     ____  _     ________  _   ____  _____ _      ____ ")
+	log.Println(" ____  _     ____  _     ________  _   ____  _____ _      ____ ")
 	log.Println("/ ___\\/ \\ /\\/  __\\/ \\ |\\/  __/\\  \\//  /  _ \\/  __// \\__/|/  _ \\")
 	log.Println("|    \\| | |||  \\/|| | //|  \\   \\  /   | | \\||  \\  | |\\/||| / \\|")
 	log.Println("\\___ || \\_/||    /| \\// |  /_  / /    | |_/||  /_ | |  ||| \\_/|")
@@ -149,7 +164,7 @@ func main() {
 	// Creating basic tables
 	log.Println("Creating tables")
 	rows, err := database.Query("create table if not exists survey_user(ID int not null auto_increment, firstName varchar(50) not null, lastName varchar(50) not null, unique(firstName, lastName), primary key(ID)) default charset utf8mb4 collate utf8mb4_unicode_ci")
-	defer rows.Close() 
+	defer rows.Close()
 	if err != nil {
 		log.Fatal("Database Error. Unable to create basic tables")
 		panic(err.Error())
@@ -157,6 +172,7 @@ func main() {
 
 	// Pass a reference of database to User Object
 	users.Database = database
+	survey.Database = database
 
 	// Fetching Port number
 	port, ok := os.LookupEnv(envSurveyPort)
@@ -167,23 +183,25 @@ func main() {
 
 	router := mux.NewRouter()
 
-	// router.HandleFunc("/echo", users.Cors).Methods("OPTIONS")
 	router.HandleFunc("/user/{id}", users.GetUser).Methods("GET")
 	router.HandleFunc("/user", users.GetUsers).Methods("GET")
 	router.HandleFunc("/user", users.PutUser).Methods("PUT")
 	router.HandleFunc("/user", users.PostUser).Methods("POST")
 	router.HandleFunc("/user", users.DeleteUser).Methods("DELETE")
 
-	// WEBSOCKET: TESTING
-	router.HandleFunc("/echo", echo)
+	router.HandleFunc("/survey", survey.GetSurveys).Methods("GET")
+
+	// WEBSOCKET
+	router.HandleFunc("/ws", survey.WebSocket)
 
 	handler := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
 		handlers.AllowedHeaders([]string{"content-type"}),
-		handlers.AllowedMethods([]string{"GET", "PUT","POST","DELETE"}),
+		handlers.AllowedMethods([]string{"GET", "PUT", "POST", "DELETE"}),
 	)(router)
-	
+
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", port), handler))
+	// Example of service using HTTPS
 	// log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%v", port), "server.crt", "server.key", handler))
 }
 
