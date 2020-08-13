@@ -8,7 +8,6 @@ import { Page, PageHeader, PageSection, Avatar,
 import { CogIcon, HelpIcon } from "@patternfly/react-icons";
 import surveyDemoImage from "@app/assets/images/survey-demo.svg";
 import imgAvatar from '@app/assets/images/imgAvatar.svg';
-import { ListSurveys } from "./ListSurveys";
 
 interface Navigation {
     navigation_item: number; 
@@ -16,7 +15,11 @@ interface Navigation {
     dropdownUser: boolean; 
 }
 
-export const MainPage: React.FunctionComponent = () => {
+interface MainPageChildren {
+    children: React.ReactNode;
+}
+
+export const MainPage: React.FunctionComponent<MainPageChildren> = ({ children }) => {
     const [ navigation, setNavigation ] = React.useState<Navigation>({
         navigation_item: 0, dropdown: false, dropdownUser: false 
     })
@@ -96,12 +99,13 @@ export const MainPage: React.FunctionComponent = () => {
         <Page mainContainerId="main-survey-demo"
             isManagedSidebar sidebar={sidebar} header={header}
             skipToContent={<SkipToContent href="main-survey-demo">Skip to Content</SkipToContent>}>
-                <PageSection variant="dark">
+                { children }
+                {/* <PageSection variant="dark">
                     {process.env.SERVER_API}
                 </PageSection>
                 <PageSection variant="default">
                     <ListSurveys surveys={[{ID: 0, name:"helo"},{ID: 1, name:"mama"}]}/>
-                </PageSection>
+                </PageSection> */}
         </Page>
     )
 }

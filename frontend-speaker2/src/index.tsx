@@ -4,14 +4,16 @@ import "@patternfly/react-core/dist/styles/base.css";
 import "./survey-demo.css";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import { Login } from "@app/Login/Login";
-import { MainPage } from "@app/MainPage/MainPage";
+import { ListSurveys } from "@app/ListSurveys/ListSurveys";
+import { DriveQuestions } from '@app/DriveQuestions/DriveQuestions';
 
 const App: React.FunctionComponent = () => {
   return (
     <Router>
       <Switch>
         <Route exact path="/login" component={Login}/>
-        <Route exact path="/main" component={MainPage}/>
+        <Route exact path="/main" component={() => <ListSurveys surveys={[{ID: 0, name:"helo"},{ID: 1, name:"mama"}]}/>}/>
+        <Route exactt path="/drive" component={DriveQuestions}/>
       </Switch>
     </Router>
   )
