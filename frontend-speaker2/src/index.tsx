@@ -12,8 +12,8 @@ const App: React.FunctionComponent = () => {
     <Router>
       <Switch>
         <Route exact path="/login" component={Login}/>
-        <Route exact path="/main" component={() => <ListSurveys surveys={[{ID: 0, name:"helo"},{ID: 1, name:"mama"}]}/>}/>
-        <Route exactt path="/drive" component={DriveQuestions}/>
+        <Route exact path="/main" component={ListSurveys}/>
+        <Route exact path="/drive" component={DriveQuestions}/>
       </Switch>
     </Router>
   )
