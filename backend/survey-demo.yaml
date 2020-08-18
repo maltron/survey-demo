@@ -2,7 +2,8 @@ apiVersion: template.openshift.io/v1
 kind: Template
 labels:
   template: survey-demo
-message: |-
+message: |- 
+  Survey Demo: OpenShift Service Mesh Demonstration
    ____  _     ____  _     ________  _   ____  _____ _      ____ 
   / ___\/ \ /\/  __\/ \ |\/  __/\  \//  /  _ \/  __// \__/|/  _ \
   |    \| | |||  \/|| | //|  \   \  /   | | \||  \  | |\/||| / \|
@@ -17,7 +18,7 @@ message: |-
            Database Password: ${MYSQL_PASSWORD}
                Database Name: ${MYSQL_DATABASE}
                Database Host: ${DATABASE_SERVICE_NAME}
-               Database Port: 3306
+               Database Port: 3306 
 metadata:
   annotations:
     description: |-
