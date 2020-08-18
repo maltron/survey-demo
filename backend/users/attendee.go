@@ -17,7 +17,7 @@ type Attendee struct {
 	ID        int64  `json:"ID"`
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
-	Email     string `json:email`
+	Email     string `json:"email"`
 }
 
 // Stringer
@@ -39,7 +39,7 @@ func (attendee Attendee) isValid() bool {
 		len(attendee.LastName) < 51
 }
 
-// Read the content from JSON and turn into a Attendee
+// Read the content from JSON and turn into an Attendee
 func (attendee *Attendee) decodeJSON(r *http.Request) error {
 	return json.NewDecoder(r.Body).Decode(attendee)
 }
