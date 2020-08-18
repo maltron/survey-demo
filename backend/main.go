@@ -2,52 +2,52 @@ package main
 
 // API Documentation
 //
-// GET /user with Header: Content-type=application/json
-// List all existing Users
+// GET /attendee with Header: Content-type=application/json
+// List all existing Attendees
 //     returns: 200 Ok
-//     Returns an array of users
+//     Returns an array of attendees
 //  returns: 204 No Content
 //     when there is no data to get from
 //  returns: 406 Not Acceptable
 //     when there isn't a Header: Content-type=application/json
 //  returns: 500 Internal Server Error
 //     when it wasn unable to perform a SQL Query
-// PUT /user with Header: Content-type=application/json
-// Create a new User
+// PUT /attendee with Header: Content-type=application/json
+// Create a new Attendee
 //   returns: 201 Created
-//   when a User was successfully created
+//   when a Attendee was successfully created
 //  returns: 400 Bad Request
 //     when one of the fields are empty
 //  returns: 406 Not Acceptable
 //     when there isn't a Header: Content-type=application/json
 //  returns: 409 Conflict
-//     when there is another existing user with the same first and last name
+//     when there is another existing attendee with the same first and last name
 //  returns: 417 Expectation Failed
-//     The User is not a valid one (size greater than estipulated by the database)
+//     The Attendee is not a valid one (size greater than estipulated by the database)
 //  returns: 500 Internal Server Error
 //     when it wasn unable to perform a SQL Query
-// POST /user with Header: Content-type=application/json
-// Update an existing User
+// POST /attendee with Header: Content-type=application/json
+// Update an existing Attendee
 //   returns: 202 Accepted
-//   when a User was successfully updated
+//   when a Attendee was successfully updated
 //  returns: 204 No Content
 //     when no rows were affected
 //  returns: 406 Not Acceptable
 //     when there isn't a Header: Content-type=application/json
 //  returns: 409 Conflict
-//     when there is another existing user with the same first and last name
+//     when there is another existing attendee with the same first and last name
 //  returns: 400 Bad Request
-//     when one of the fields are empty OR user.ID == 0
+//     when one of the fields are empty OR attendee.ID == 0
 //  returns: 417 Expectation Failed
-//     The User is not a valid one (size greater than estipulated by the database)
-// DELETE /user with Header: Content-type=application/json
-// Delete an existing User
+//     The Attendee is not a valid one (size greater than estipulated by the database)
+// DELETE /attendee with Header: Content-type=application/json
+// Delete an existing Attendee
 //   returns: 202 Accepted
-//   when a User was successfully deleted
+//   when a Attendee was successfully deleted
 //  returns: 204 No Content
 //     when no rows were affected
 //  returns: 417 Expectation Failed
-//     The User is not a valid one (size greater than estipulated by the database)
+//     The Attendee is not a valid one (size greater than estipulated by the database)
 
 import (
 	"database/sql"
@@ -183,11 +183,11 @@ func main() {
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/user/{id}", users.GetUser).Methods("GET")
-	router.HandleFunc("/user", users.GetUsers).Methods("GET")
-	router.HandleFunc("/user", users.PutUser).Methods("PUT")
-	router.HandleFunc("/user", users.PostUser).Methods("POST")
-	router.HandleFunc("/user", users.DeleteUser).Methods("DELETE")
+	router.HandleFunc("/attendee/{id}", users.GetAttendee).Methods("GET")
+	router.HandleFunc("/attendee", users.GetAttendees).Methods("GET")
+	router.HandleFunc("/attendee", users.PutAttendee).Methods("PUT")
+	router.HandleFunc("/attendee", users.PostAttendee).Methods("POST")
+	router.HandleFunc("/attendee", users.DeleteAttendee).Methods("DELETE")
 
 	router.HandleFunc("/survey", survey.GetSurveys).Methods("GET")
 
