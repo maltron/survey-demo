@@ -1,10 +1,6 @@
 import React from "react";
-import { Survey, User } from "@app/Shared/Model";
-
-// Fetch the Backend's Endpoint URL to use everywhere
-export const server = (): string => {
-    return process.env.BACKEND_API ? process.env.BACKEND_API : "http://localhost:8080";
-}
+import { Survey, Attendee, AttendeeRank, Answer, Question } from "@app/Shared/Model";
+import { backendURL } from "@app/Backend/Backend";
 
 // List of all existing Surveys
 export const useAPISurveys = (): [ boolean, Array<Survey> ] => {
@@ -12,7 +8,7 @@ export const useAPISurveys = (): [ boolean, Array<Survey> ] => {
     const [ loading, setLoading ] = React.useState<boolean>(true);
 
     React.useEffect(() => {
-        fetch(`${server()}/survey`, {
+        fetch(`http://${backendURL()}/survey`, {
             method: "GET", headers: { "Content-type": "application/json" }
         }).then(response => response.json())
         .then(data => {
@@ -23,19 +19,51 @@ export const useAPISurveys = (): [ boolean, Array<Survey> ] => {
     return [ loading, surveys ]
 }
 
-// List of all existing Users
-export const useAPIUsers = (): [ boolean,  Array<User> ] => {
-    const [ users, setUsers ] = React.useState<Array<User>>([]);
+// List of all existing Attendees
+export const useAPIAttendees = (): [ boolean,  Array<Attendee> ] => {
+    const [ attendees, setAttendees ] = React.useState<Array<Attendee>>([]);
     const [ loading, setLoading ] = React.useState<boolean>(true);
 
     React.useEffect(() => {
-        fetch(`${server()}/user`, {
+        fetch(`http://${backendURL()}/user`, {
             method: "GET", headers: { "Content-type": "application/json" }
         }).then(response => response.json())
         .then(data => {
-            setUsers(data); setLoading(false);
+            setAttendees(data); setLoading(false);
         })
     }, []);
 
-    return [ loading, users ];
+    return [ loading, attendees ];
+}
+
+export const useAPIRank = (surveyID: number): [ boolean, Array<AttendeeRank> ] => {
+    const [ rank, setRank ] = React.useState<Array<AttendeeRank>>([]);
+    const [ loading, setLoading ] = React.useState<boolean>(true);
+
+    React.useEffect(() => {
+        fetch(`http://${backendURL()}/attendee/ranks/${surveyID}`, {
+            method: "GET", headers: { "Content-type" : "application/json" }
+        }).then(response => response.json())
+        .then(data => {
+            setRank(data); setLoading(false);
+        })
+    }, []);
+
+    return [ loading, rank ];
+}
+
+export const useAPIQuestions = (surveyID: number): [ boolean, Array<Question> ] => {
+    const [ questions, setQuestions ] = React.useState<Array<Question>>([]);
+    const [ loading, setLoading ] = React.useState<boolean>(true);
+
+    React.useEffect(() => {
+        fetch(`http://${backendURL()}/survey/questions/${surveyID}`, {
+            method: "GET", headers: { "Content-type" : "application/json" }
+        }).then(response => response.json()) 
+        .then(data =>  {
+            setQuestions(data); setLoading(false);
+        })
+    }, []);
+
+    return [ loading, questions ];
 }

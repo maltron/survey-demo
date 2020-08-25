@@ -22,29 +22,88 @@ import {
   ButtonVariant,
   OverflowMenuGroup,
   ToolbarContent,
+  EmptyState, EmptyStateIcon, Title
 } from '@patternfly/react-core';
 import { Table, TableHeader, TableBody } from '@patternfly/react-table';
 import { FilterIcon, TableIcon } from '@patternfly/react-icons';
 import { MainPage } from '@app/Shared/MainPage';
-import { Question, QuestionProps } from '@app/Question/Question';
-import { useAPIUsers } from "@app/Backend/APIReqquest";
+import { Question } from "@app/Shared/Model"
+import { useWebSocket } from "@app/Backend/SocketCommunication";
+import { Wait } from "@app/Shared/Components";
+import { useAPIRank, useAPIQuestions } from "@app/Backend/APIReqquest";
 
-export const DriveQuestions: React.FunctionComponent = () => {
-  const sampleQuestion = (
-    <Question
-      question="What is the capital of China ?"
-      timer={10}
-      points={50}
-      answers={[
-        { id: '0', answer: 'Shanghai', is_correct: false },
-        { id: '1', answer: 'Beijing', is_correct: true },
-        { id: '2', answer: 'Tokyo', is_correct: false },
-        { id: '3', answer: 'Manchuria', is_correct: false },
-      ]}
-    />
-  );
+interface DriveQuestionsProps {
+  survey: number; 
+}
+
+interface QuestionProps {
+  question: Question | null
+  isCurrent?: boolean
+}
+
+export const DriveQuestions: React.FunctionComponent<DriveQuestionsProps> = ({ survey }) => {
+  const [ connected, websocket ] = useWebSocket();
+  const [ loading, questions ] = useAPIQuestions(survey); // Setting to 
+  const [ currentQuestion, setCurrentQuestion ] = React.useState<number>(0);
+
+  React.useEffect(() => {
+    console.log(">>> DriveQuestions useEffect()");
+    if(connected) {
+      console.log(">>> DriveQuestions useEffect() connected");
+      websocket.onmessage = backendMessage;
+      // websocket.send(JSON.stringify({ survey: survey, action: "START" }));
+    }
+  }, [connected]);
+
+  const backendMessage = (event: MessageEvent) => {
+          console.log(`>>> backendMessage(): ${event.data} ${event.lastEventId} ${event.origin} ${event.ports} ${event.source}`);
+  }
+
+  const isFirstQuestion = (): boolean => currentQuestion == 0;
+
+  const jumpPreviousQuestion = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    if(!isFirstQuestion()) {
+      setCurrentQuestion(prevQuestion => { 
+          notifyBackend(questions[prevQuestion-1].ID);
+          return prevQuestion-1;
+      });
+    }
+  }
+
+  const buttonPrevious: JSX.Element = (
+    isFirstQuestion() ? 
+    <Button isDisabled variant={ButtonVariant.secondary} onClick={jumpPreviousQuestion}>Previous</Button>
+    : <Button variant={ButtonVariant.secondary} onClick={jumpPreviousQuestion}>Previous</Button>
+  )
+
+  const isLastQuestion = (): boolean => currentQuestion == questions.length-1;
+
+  const jumpNextQuestion = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    if(!isLastQuestion()) {
+        setCurrentQuestion(prevQuestion => { 
+            notifyBackend(questions[prevQuestion+1].ID);
+            return prevQuestion+1;
+        });
+    }
+  }
+
+  const buttonNext: JSX.Element = (
+    isLastQuestion() ? 
+    <Button isDisabled variant={ButtonVariant.primary} onClick={jumpNextQuestion}>Next</Button>
+    : <Button variant={ButtonVariant.primary} onClick={jumpNextQuestion}>Next</Button>
+  )
+
+  const notifyBackend = (questionID: number) => {
+    console.log("notifyBackground Connected:"+connected);
+    if(connected) {
+      websocket.send(JSON.stringify({ surveyID: 1, questionID }));
+    }
+  }
+
   return (
     <MainPage>
+      { connected ? <PageSection variant="darker">Connected</PageSection>
+                  : <PageSection variant="dark">Disconnected</PageSection> }
       <PageSection variant="light">
         <TextContent>
           <Text component={TextVariants.h1}>Capitals of the World</Text>
@@ -52,125 +111,80 @@ export const DriveQuestions: React.FunctionComponent = () => {
         </TextContent>
         <Toolbar id="toolbar-group-types">
           <ToolbarContent>
-            <ToolbarItem>
-              <Button variant={ButtonVariant.tertiary}>Pick Player</Button>
-            </ToolbarItem>
-            <ToolbarItem variant="separator" />
-            <ToolbarItem>
-              <Button variant={ButtonVariant.secondary}>Previous</Button>
-            </ToolbarItem>
-            <ToolbarItem>
-              <Button variant={ButtonVariant.primary}>Next</Button>
-            </ToolbarItem>
+            <ToolbarItem>{buttonPrevious}</ToolbarItem>
+            <ToolbarItem>{buttonNext}</ToolbarItem>
           </ToolbarContent>
         </Toolbar>
       </PageSection>
       <PageSection variant="default">
         <Grid hasGutter>
-          <PreviousQuestion
-            question="What is the capital of Bolivia ?"
-            timer={10}
-            points={50}
-            answers={[
-              { id: '0', answer: 'Macau', is_correct: false },
-              { id: '1', answer: 'Santiago', is_correct: false },
-              { id: '2', answer: 'Lima', is_correct: true },
-              { id: '3', answer: 'Cincinatti', is_correct: false },
-            ]}
-          />
-          <CurrentQuestion
-            question="What is the capital of Bolivia ?"
-            timer={10}
-            points={50}
-            answers={[
-              { id: '0', answer: 'Macau', is_correct: false },
-              { id: '1', answer: 'Santiago', is_correct: false },
-              { id: '2', answer: 'Lima', is_correct: true },
-              { id: '3', answer: 'Cincinatti', is_correct: false },
-            ]}
-          />
-          <NextQuestion
-            question="What is the capital of Bolivia ?"
-            timer={10}
-            points={50}
-            answers={[
-              { id: '0', answer: 'Macau', is_correct: false },
-              { id: '1', answer: 'Santiago', is_correct: false },
-              { id: '2', answer: 'Lima', is_correct: true },
-              { id: '3', answer: 'Cincinatti', is_correct: false },
-            ]}
-          />
-          <ListOfUsers />
+          { !loading && (
+            <React.Fragment>
+              <Question question={currentQuestion == 0 ? null : questions[currentQuestion-1]}/>
+              <Question isCurrent question={questions[currentQuestion]}/>
+              <Question question={currentQuestion < questions.length ? questions[currentQuestion+1] : null}/>
+            </React.Fragment>
+          )}
+          <ListOfUsers survey={survey}/>
         </Grid>
       </PageSection>
     </MainPage>
   );
 };
 
-const PreviousQuestion: React.FunctionComponent<QuestionProps> = ({ question, answers }) => {
+const Question: React.FunctionComponent<QuestionProps> = ({ question, isCurrent }) => {
   return (
     <GridItem span={4}>
-      <Card>
-        <CardTitle>{question}</CardTitle>
+      { isCurrent && question && (<Card isSelectable isSelected={true}>
+        <CardTitle>{question.question}</CardTitle>
         <CardBody>
-          {answers.map((answer, index) => (
+          {question.answers.map((answer, index) => (
             <p key={index}>{answer.answer}</p>
           ))}
         </CardBody>
-      </Card>
+      </Card> )}
+      { !isCurrent && question && (<Card>
+        <p key="timer">{question.points} points</p>
+        <Divider/>
+        <CardTitle>{question.question}</CardTitle>
+        <CardBody>
+          {question.answers.map((answer, index) => (
+            <p key={index}>{index+1}. {answer.answer}</p>
+          ))}
+        </CardBody>
+      </Card> )}
     </GridItem>
   );
 };
 
-const CurrentQuestion: React.FunctionComponent<QuestionProps> = ({ question, answers }) => {
-  return (
-    <GridItem span={4}>
-      <Card isSelectable isSelected={true}>
-        <CardTitle>{question}</CardTitle>
-        <CardBody>
-          {answers.map((answer, index) => (
-            <p key={index}>{answer.answer}</p>
-          ))}
-        </CardBody>
-      </Card>
-    </GridItem>
-  );
-};
+const ListOfUsers: React.FunctionComponent<DriveQuestionsProps> = ({ survey }) => {
+  const [ loading, ranks ] = useAPIRank(survey);
 
-const NextQuestion: React.FunctionComponent<QuestionProps> = ({ question, answers }) => {
-  return (
-    <GridItem span={4}>
-      <Card>
-        <CardTitle>{question}</CardTitle>
-        <CardBody>
-          {answers.map((answer, index) => (
-            <p key={index}>{answer.answer}</p>
-          ))}
-        </CardBody>
-      </Card>
-    </GridItem>
-  );
-};
+  const rows = () => { 
+    const result = ranks.map((rank, index) => ({ cells: [ `#${index}`, rank.points, rank.firstName, rank.lastName ] }));
+    console.log(result);
+  }
 
-const ListOfUsers: React.FunctionComponent = () => {
   return (
     <GridItem rowSpan={1}>
       <Card>
-        <Table
+        {loading && (<Wait/>)}
+        {!loading && (<Table
           aria-label="Bulk Select Table Demo"
           cells={[{ title: 'Rank' }, { title: 'Points' }, { title: 'First Name' }, { title: 'Second Name' }]}
-          rows={[
-            { cells: ['#1', '25', 'Malcom', 'X'] },
-            { cells: ['#2', '23', 'Martha', 'Kent'] },
-            { cells: ['#3', '21', 'Ligia', 'Maria'] },
-            { cells: ['#4', '18', 'Marisa', 'Thomey'] },
-            { cells: ['#5', '7', 'Cintia', 'Thomas'] },
-          ]}
-          onSelect={(OnSelect) => console.log(OnSelect)}
+          // rows={ranks.map((rank, index) => {
+          //   { cells: [ `#${index}`, `${rank.points}`, `${rank.firstName}`, `${rank.lastName}` ]}
+          // })}
+          rows={ranks.map((rank, index) => ({ cells: [ `#${index+1}`, rank.points, rank.firstName, rank.lastName ] }))}
+          onSelect={(OnSelect) => {
+
+            rows();
+          }}
         >
           <TableHeader />
           <TableBody />
         </Table>
+        )}
       </Card>
     </GridItem>
   );
