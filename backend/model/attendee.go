@@ -1,34 +1,40 @@
-package users
+package model
 
 import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/gorilla/mux"
 )
 
-var Database *sql.DB
-
 type Attendee struct {
 	ID        int64  `json:"ID"`
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
 	Email     string `json:"email"`
+	Survey    int    `json:"survey"`
+}
+
+type AttendeeRank struct {
+	ID        int64  `json:"ID"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Points    int64  `json:"points"`
 }
 
 // Stringer
 func (attendee Attendee) String() string {
-	return fmt.Sprintf("{\"ID\":%d,\"firstName\":\"%v\",\"lastName\":\"%v\",\"email\":\"%v\"}",
-		attendee.ID, attendee.FirstName, attendee.LastName, attendee.Email)
+	return fmt.Sprintf("{\"ID\":%d,\"firstName\":\"%v\",\"lastName\":\"%v\",\"email\":\"%v\",\"survey\":\"%v\"}",
+		attendee.ID, attendee.FirstName, attendee.LastName, attendee.Email, attendee.Survey)
 }
 
 // Returns true if one of the fields are empty
 func (attendee Attendee) isEmpty() bool {
-	return len(attendee.FirstName) == 0 || len(attendee.LastName) == 0
+	return len(attendee.FirstName) == 0 || len(attendee.LastName) == 0 ||
+			len(attendee.Email) == 0 || attendee.Survey == 0;
 }
 
 // Returns true if this information is valid
@@ -36,7 +42,10 @@ func (attendee Attendee) isValid() bool {
 	return len(attendee.FirstName) > 0 &&
 		len(attendee.LastName) > 0 &&
 		len(attendee.FirstName) < 51 &&
-		len(attendee.LastName) < 51
+		len(attendee.LastName) < 51 &&
+		len(attendee.Email) > 0 &&
+		len(attendee.Email) < 151 &&
+		attendee.Survey > 0; 
 }
 
 // Read the content from JSON and turn into an Attendee
@@ -182,7 +191,7 @@ func PutAttendee(w http.ResponseWriter, r *http.Request) {
 
 	// Step 1/3: Prepare a statement for inserting
 	// log.Println("Step 1/3")
-	const query string = "insert into survey_attendee(firstName, lastName, email) values(?, ?, ?)"
+	const query string = "insert into survey_attendee(firstName, lastName, email, surveyID) values(?, ?, ?, ?)"
 	statement, err := Database.Prepare(query)
 	defer statement.Close()
 	if err != nil {
@@ -193,7 +202,7 @@ func PutAttendee(w http.ResponseWriter, r *http.Request) {
 
 	// Step 2/3: Execute the Statement and try to Insert
 	// log.Println("Step 2/3: Attendee:", attendee)
-	result, err := statement.Exec(attendee.FirstName, attendee.LastName, attendee.Email)
+	result, err := statement.Exec(attendee.FirstName, attendee.LastName, attendee.Email, attendee.Survey)
 	if err != nil {
 		// Check if there is a duplication
 		//  409 Conflict
@@ -219,6 +228,7 @@ func PutAttendee(w http.ResponseWriter, r *http.Request) {
 	//      with 201 - Created
 	// log.Println("Step 3/3")
 	w.WriteHeader(http.StatusCreated)
+	w.Header().Set("Accept", "application/json")
 	attendee.encodeJSON(w)
 }
 
@@ -306,31 +316,45 @@ func GetAttendee(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(attendee)
 }
 
-func isContentTypeJSON(w http.ResponseWriter, r *http.Request) bool {
-	if r.Header.Get("Content-type") != "application/json" {
-		reportError(w, http.StatusNotAcceptable, 
-			fmt.Sprintf("406 Not Acceptable: %v\n", r.Header.Get("Content-type")), nil)
-		return false
+// Return the Ranks of Attendees sorted by points
+func GetRanks(w http.ResponseWriter, r  *http.Request) {
+	surveyID, ok := mux.Vars(r)["surveyID"]
+	if !ok {
+		reportError(w, http.StatusInternalServerError,
+			"500 Internal Server Error (Unable to fetch surveyID from URL)", nil)
+		return
 	}
-	return true
-}
 
-func reportError(w http.ResponseWriter, httpStatusCode int, description string, err error) {
-	w.WriteHeader(httpStatusCode)
+	query := fmt.Sprintf("select attendee.ID, attendee.firstName, attendee.lastName, ap.points from survey survey join survey_attendee_points ap on survey.ID = ap.surveyID join survey_attendee attendee on attendee.ID = ap.attendeeID where survey.ID = %d order by ap.points desc", surveyID)
+	rows, err := Database.Query(query)
+	defer rows.Close()
 	if err != nil {
-		log.Printf("### %v: %v\n", description, err.Error())
-	} else {
-		log.Printf("### %v\n", description)
-	}
-}
+		// Error: 500 - Internal Server Error
+		// PENDING: It seems there is no way to return 500 in case
+		//          of something happened to the query
+		reportError(w, http.StatusInternalServerError,
+			fmt.Sprintf("500 Internal Server Error (query: %v)\n", query), err)
+		return
+	}	
 
-// func Cors(w http.ResponseWriter, r *http.Request) {
-// 	log.Println("OPTIONS")
-// 	for name, value := range r.Header {
-// 		log.Printf("Header %v:%v\n", name, value)
-// 	}
-// 	w.Header().Set("Access-Control-Allow-Origin", "*")
-// 	w.Header().Set("Access-Control-Allow-Headers", "*")
-// 	w.Header().Set("Access-Control-Allow-Methods", "*")
-// 	return 
-// }
+	var ranks []AttendeeRank
+	for rows.Next() {
+		var rank AttendeeRank
+		err := rows.Scan(&rank.ID, &rank.FirstName, &rank.LastName, &rank.Points)
+		if err != nil {
+			reportError(w, http.StatusInternalServerError,
+				fmt.Sprintf("500 Internal Server Error (Unable to Read from Database)"), nil)
+				panic(err.Error())
+		}
+		ranks = append(ranks, rank)
+	}
+
+	if len(ranks) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return 
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Accept", "application/json")
+	json.NewEncoder(w).Encode(ranks)
+}

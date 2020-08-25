@@ -51,7 +51,6 @@ package main
 
 import (
 	"database/sql"
-	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -60,8 +59,8 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/maltron/survey-demo/backend/survey"
-	"github.com/maltron/survey-demo/backend/users"
+	"github.com/maltron/survey-demo/backend/model"
+	"github.com/maltron/survey-demo/backend/socket"
 )
 
 const (
@@ -86,61 +85,7 @@ var (
 	err      error
 )
 
-// // WEBSOCKET: TESTING
-// var upgrader = websocket.Upgrader{} // Use Default values
-
-// type Command struct {
-// 	Command string `json:"command"`
-// 	Data    string `json:"data"`
-// }
-
-// func echo(w http.ResponseWriter, r *http.Request) {
-// 	log.Println("WEBSOCKET BEGIN >>>>>>>>>>>>")
-// 	// log.Println(">>> WEBSOCKET Echo Upgrading")
-// 	// for name, value := range r.Header {
-// 	// 	log.Printf("Header %v:%v\n", name, value)
-// 	// }
-// 	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-// 	connection, err := upgrader.Upgrade(w, r, nil);
-// 	if err != nil {
-// 		log.Println("### ERROR UPGRADE:", err)
-// 		panic(err.Error);
-// 	}
-// 	defer connection.Close();
-
-// 	for {
-// 		log.Println(">>> WEBSOCKET BEGIN LOOP #####")
-// 		// READ THE MESSAGE
-// 		messageType, message, err := connection.ReadMessage();
-// 		if err != nil {
-// 			log.Println("### ERROR READ:", err)
-// 			break;
-// 		}
-
-// 		command := Command{}
-// 		errJSON := json.Unmarshal(message, &command);
-// 		if errJSON != nil {
-// 			log.Println("### JSON ERROR:", errJSON)
-// 		}
-// 		log.Printf(">>> WEBSOCKET Command: %v Data: %v\n", command.Command, command.Data)
-
-// 		// WRITE THE MESSAGE BACK
-// 		log.Printf(">>> WEBSOCKET Message messageType: %d Received:%s Type:%T\n",
-// 															messageType, message, message)
-// 		log.Println(">>> WEBSOCKET Writing the same message back")
-// 		err = connection.WriteMessage(messageType, message);
-// 		if err != nil {
-// 			log.Println("### ERROR WRITE: ", err);
-// 			break;
-// 		}
-// 		log.Println(">>> WEBSOCKET END LOOP #####")
-// 	}
-// 	log.Println("WEBSOCKET END <<<<<<<<<<<<<")
-// }
-
 func main() {
-	var addr = flag.String("addr", "localhost:8080", "http service address")
-	log.Printf("addr (%T) %v\n", addr, addr)
 	log.Println(" ____  _     ____  _     ________  _   ____  _____ _      ____ ")
 	log.Println("/ ___\\/ \\ /\\/  __\\/ \\ |\\/  __/\\  \\//  /  _ \\/  __// \\__/|/  _ \\")
 	log.Println("|    \\| | |||  \\/|| | //|  \\   \\  /   | | \\||  \\  | |\\/||| / \\|")
@@ -171,28 +116,34 @@ func main() {
 	}
 
 	// Pass a reference of database to User Object
-	users.Database = database
-	survey.Database = database
+	model.Database = database
 
 	// Fetching Port number
 	port, ok := os.LookupEnv(envSurveyPort)
 	if !ok {
 		port = defaultSurveyPort
 	}
-	log.Printf("SURVEY DEMO: Starting at Port :%v\n", port)
+	log.Printf("SURVEY DEMO: Started, Port :%v\n", port)
 
 	router := mux.NewRouter()
 
-	router.HandleFunc("/attendee/{id}", users.GetAttendee).Methods("GET")
-	router.HandleFunc("/attendee", users.GetAttendees).Methods("GET")
-	router.HandleFunc("/attendee", users.PutAttendee).Methods("PUT")
-	router.HandleFunc("/attendee", users.PostAttendee).Methods("POST")
-	router.HandleFunc("/attendee", users.DeleteAttendee).Methods("DELETE")
+	router.HandleFunc("/attendee/{id}", model.GetAttendee).Methods("GET")
+	router.HandleFunc("/attendee", model.GetAttendees).Methods("GET")
+	router.HandleFunc("/attendee", model.PutAttendee).Methods("PUT")
+	router.HandleFunc("/attendee", model.PostAttendee).Methods("POST")
+	router.HandleFunc("/attendee", model.DeleteAttendee).Methods("DELETE")
+	router.HandleFunc("/attendee/ranks/{surveyID}", model.GetRanks).Methods("GET")
+	router.HandleFunc("/survey/questions/{surveyID}", model.GetSurveyQuestions).Methods("GET")
+	router.HandleFunc("/survey/answer", model.PostAttendeeAnswer).Methods("POST")
 
-	router.HandleFunc("/survey", survey.GetSurveys).Methods("GET")
+	router.HandleFunc("/speaker", model.GetSpeakers).Methods("GET")
 
 	// WEBSOCKET
-	router.HandleFunc("/ws", survey.WebSocket)
+	websocketRouter := socket.NewRouter()
+	websocketRouter.Handle("channel add", func(client *socket.Client, data interface{}) {
+		log.Println("Channel Add called")
+	})
+	router.Handle("/ws", websocketRouter)
 
 	handler := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),

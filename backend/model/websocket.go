@@ -1,4 +1,4 @@
-package survey
+package model
 
 import (
 	"fmt"
@@ -41,28 +41,24 @@ func (command *Command) parseJSON(message []byte) error {
 func WebSocket(w http.ResponseWriter, r *http.Request) {
 	connection, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("### COMMAND HANDLER: Unable to Upgrade Websocket:%v\n", err.Error())
+		log.Printf("### WEBSOCKET: Unable to Upgrade Websocket:%v\n", err.Error())
 		return 
 	}
 	defer connection.Close()
 
 	// Infinite Loop
 	for {
-		log.Println(">>> Command Handler: Looping BEGIN >>>>>>>>")
-		_, message, err := connection.ReadMessage()
+		log.Printf(">>> WEBSOCKET: Looping BEGIN >>>>>>>> Local: %v Remote: %v\n",
+				connection.LocalAddr(), connection.RemoteAddr())
+
+		messageType, message, err := connection.ReadMessage()
 		if err != nil {
-			log.Printf("### COMMAND HANDLER: Unable to read Message:%v\n", err.Error())
+			log.Printf("### WEBSOCKET: Unable to read Message\n")
 			continue
 		}
+		log.Printf(">>> WEBSOCKET: Type: %d Message: %v\n", messageType, string(message));
 
-		command := Command{}
-		err = command.parseJSON(message)
-		if err != nil {
-			log.Printf("### COMMAND HANDLER: Unable to Parse JSON:%s\n", message)
-			continue 
-		}
-
-		log.Println(">>> Command Handler: Looping END <<<<<<<<<<")
+		log.Println(">>> WEBSOCKET: Looping END <<<<<<<<<<")
 	}	
 
 }

@@ -8,6 +8,7 @@ RUN apk --no-cache add git && \
            github.com/gorilla/handlers \
            github.com/go-sql-driver/mysql \
            github.com/gorilla/websocket && \
+           github.com/mitchellh/mapstructure && \
     cd $SOURCE && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o /survey/survey-demo .
 
 FROM alpine:latest
