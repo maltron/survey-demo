@@ -11,8 +11,8 @@ type FindHandler func(string) (Handler, bool)
 // Client represents information about a WebSocket connection 
 // and how it will be handled once the information arrives
 type Client struct {
+	Send chan Command
 	socket *websocket.Conn
-	send chan Command // Channel to be used in a go subrotine
 	findHandler FindHandler
 }
 
@@ -20,7 +20,7 @@ type Client struct {
 func NewClient(socket *websocket.Conn, findHandler FindHandler) *Client {
 	return &Client{
 		socket: socket,
-		send: make(chan Command),
+		Send: make(chan Command),
 		findHandler: findHandler,
 	}
 }
@@ -33,17 +33,17 @@ func (client *Client) Read() {
 	var command Command
 	for {
 		if err := client.socket.ReadJSON(&command); err != nil {
-			log.Fatalf("WEBSOCKET Read(): Unable to Decode JSON:%#v\n", err)
+			log.Printf("### WEBSOCKET Read(): Unable to Decode JSON:%#v\n", err)
 			break; 
 		}
 
 		if handler, found := client.findHandler(command.Name); found {
 			handler(client, command.Data)
 		} else {
-			log.Printf("WEBSOCKET Read(): Unable to Find Handler: %#v\n", command.Name)
+			log.Printf("### WEBSOCKET Read(): Unable to Find Handler: %#v\n", command.Name)
 		}
 	}
-	log.Fatalf("WEBSOCKET Read(): Closing socket connection due a failure in JSON Decoding")
+	log.Printf("WEBSOCKET Read(): Closing socket connection due a failure in JSON Decoding")
 	client.socket.Close()
 }
 
@@ -51,11 +51,12 @@ func (client *Client) Read() {
 // and immediately, it will be send to the Client as JSON
 func (client *Client) Write() {
 	log.Printf("WEBSOCKET Write(): Waiting for Commands to be sent (infinite loop)")
-	for command := range client.send {
+	for command := range client.Send {
 		if err := client.socket.WriteJSON(command); err != nil {
-			log.Fatalf("WEBSOCKET Write(): Unable to Encode JSON: %#v\n", err)
+			log.Printf("### WEBSOCKET Write(): Unable to Encode JSON: %#v\n", err)
 			break;
 		}
 	}
-	log.Fatalf("WEBSOCKET Write(): Closing socket connection due a failure in JSON Enconding")
+	log.Printf("WEBSOCKET Write(): Closing socket connection due a failure in JSON Enconding")
+	client.socket.Close()
 }

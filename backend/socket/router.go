@@ -3,13 +3,14 @@ package socket
 import (
 	"log"
 	"net/http"
+
 	"github.com/gorilla/websocket"
 )
 
 var upgrader = websocket.Upgrader{
-	ReadBufferSize: 1024, 
+	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool { return true },
+	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
 // Handler the function signature
@@ -38,13 +39,13 @@ func (router *Router) Handle(command string, handler Handler) {
 	router.rules[command] = handler
 }
 
-// ServeHTTP This is needed by the http package, so you can use into the http.Handle 
-// It automatically will start listening for WebSocket connections and handling 
+// ServeHTTP This is needed by the http package, so you can use into the http.Handle
+// It automatically will start listening for WebSocket connections and handling
 // appropriately based on a Command struct
-func (router *Router) ServeHTTP(w http.ResponseWriter, r* http.Request) {
+func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	socket, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Fatalf("WEBSOCKET ERROR: Unable to Upgrade Connection to WebSocket: %#v\n", err)
+		log.Printf("WEBSOCKET ERROR: Unable to Upgrade Connection to WebSocket: %#v\n", err)
 		panic(err)
 	}
 	defer socket.Close()

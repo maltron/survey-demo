@@ -59,8 +59,9 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/maltron/survey-demo/backend/model"
+	"github.com/maltron/survey-demo/backend/survey"
 	"github.com/maltron/survey-demo/backend/socket"
+	"github.com/maltron/survey-demo/backend/drive"
 )
 
 const (
@@ -93,30 +94,30 @@ func main() {
 	log.Println("\\____/\\____/\\_/\\_\\\\__/  \\____\\/_/     \\____/\\____\\\\_/  \\|\\____/")
 	log.Println("Connecting to the database")
 	// Connecting to the database
-	database, err = sql.Open("mysql", databaseConnection())
-	if err != nil {
-		log.Fatal("Database Error.")
-		panic(err.Error())
-	}
-	// Testing if we can perform queries
-	err = database.Ping()
-	if err != nil {
-		log.Fatal("Database Error. Unable to connect. Ping failure")
-		panic(err.Error())
-	}
-	defer database.Close()
+	// database, err = sql.Open("mysql", databaseConnection())
+	// if err != nil {
+	// 	log.Fatal("Database Error.")
+	// 	panic(err.Error())
+	// }
+	// // Testing if we can perform queries
+	// err = database.Ping()
+	// if err != nil {
+	// 	log.Fatal("Database Error. Unable to connect. Ping failure")
+	// 	panic(err.Error())
+	// }
+	// defer database.Close()
 
-	// Creating basic tables
-	log.Println("Creating tables")
-	rows, err := database.Query("create table if not exists survey_user(ID int not null auto_increment, firstName varchar(50) not null, lastName varchar(50) not null, unique(firstName, lastName), primary key(ID)) default charset utf8mb4 collate utf8mb4_unicode_ci")
-	defer rows.Close()
-	if err != nil {
-		log.Fatal("Database Error. Unable to create basic tables")
-		panic(err.Error())
-	}
+	// // Creating basic tables
+	// log.Println("Creating tables")
+	// rows, err := database.Query("create table if not exists survey_user(ID int not null auto_increment, firstName varchar(50) not null, lastName varchar(50) not null, unique(firstName, lastName), primary key(ID)) default charset utf8mb4 collate utf8mb4_unicode_ci")
+	// defer rows.Close()
+	// if err != nil {
+	// 	log.Fatal("Database Error. Unable to create basic tables")
+	// 	panic(err.Error())
+	// }
 
-	// Pass a reference of database to User Object
-	model.Database = database
+	// // Pass a reference of database to User Object
+	// survey.Database = database
 
 	// Fetching Port number
 	port, ok := os.LookupEnv(envSurveyPort)
@@ -126,25 +127,24 @@ func main() {
 	log.Printf("SURVEY DEMO: Started, Port :%v\n", port)
 
 	router := mux.NewRouter()
-
-	router.HandleFunc("/attendee/{id}", model.GetAttendee).Methods("GET")
-	router.HandleFunc("/attendee", model.GetAttendees).Methods("GET")
-	router.HandleFunc("/attendee", model.PutAttendee).Methods("PUT")
-	router.HandleFunc("/attendee", model.PostAttendee).Methods("POST")
-	router.HandleFunc("/attendee", model.DeleteAttendee).Methods("DELETE")
-	router.HandleFunc("/attendee/ranks/{surveyID}", model.GetRanks).Methods("GET")
-	router.HandleFunc("/survey/questions/{surveyID}", model.GetSurveyQuestions).Methods("GET")
-	router.HandleFunc("/survey/answer", model.PostAttendeeAnswer).Methods("POST")
-
-	router.HandleFunc("/speaker", model.GetSpeakers).Methods("GET")
-
+	router.HandleFunc("/attendee/{id}", survey.GetAttendee).Methods("GET")
+	router.HandleFunc("/attendee", survey.GetAttendees).Methods("GET")
+	router.HandleFunc("/attendee", survey.PutAttendee).Methods("PUT")
+	router.HandleFunc("/attendee", survey.PostAttendee).Methods("POST")
+	router.HandleFunc("/attendee", survey.DeleteAttendee).Methods("DELETE")
+	router.HandleFunc("/attendee/ranks/{surveyID}", survey.GetRanks).Methods("GET")
+	router.HandleFunc("/survey/questions/{surveyID}", survey.GetSurveyQuestions).Methods("GET")
+	router.HandleFunc("/survey/answer", survey.PostAttendeeAnswer).Methods("POST")
+	router.HandleFunc("/speaker", survey.GetSpeakers).Methods("GET")
+	
 	// WEBSOCKET
 	websocketRouter := socket.NewRouter()
-	websocketRouter.Handle("channel add", func(client *socket.Client, data interface{}) {
-		log.Println("Channel Add called")
-	})
 	router.Handle("/ws", websocketRouter)
 
+	// WebSocket Handlers
+	websocketRouter.Handle("SpeakerStartSurvey", drive.SpeakerStartSurvey)
+	websocketRouter.Handle("AttendeeRegistered", drive.AttendeeRegistered)
+	
 	handler := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
 		handlers.AllowedHeaders([]string{"content-type"}),
@@ -152,6 +152,7 @@ func main() {
 	)(router)
 
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", port), handler))
+	// log.Fatal(http.ListenAndServe(fmt.Sprintf(":%v", port), nil))
 	// Example of service using HTTPS
 	// log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%v", port), "server.crt", "server.key", handler))
 }
