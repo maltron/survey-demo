@@ -33,7 +33,7 @@ func (client *Client) Read() {
 	var command Command
 	for {
 		if err := client.socket.ReadJSON(&command); err != nil {
-			log.Printf("### WEBSOCKET Read(): Unable to Decode JSON:%#v\n", err)
+			log.Printf("### WEBSOCKET Read(): Unable to Decode JSON: %#v\n", err)
 			break; 
 		}
 

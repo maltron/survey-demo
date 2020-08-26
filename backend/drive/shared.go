@@ -19,8 +19,8 @@ type SurveySession map[int][]Attendee
 // Key: SurveyID, Value: Array of Attendees
 var sessions SurveySession = make(SurveySession)
 
-func (sessions SurveySession) create(surveyID int) {
-	sessions[surveyID] = []Attendee{}
+func (sessions SurveySession) create(speaker speakerForSurvey) {
+	sessions[speaker.SurveyID] = []Attendee{}
 }
 
 func (sessions SurveySession) exists(surveyID int) bool {
@@ -28,24 +28,34 @@ func (sessions SurveySession) exists(surveyID int) bool {
 	return found
 }
 
-func (sessions SurveySession) contains(surveyID int, attendee Attendee) bool {
-	for _, a := range sessions[surveyID] {
-		if a.ID == attendee.ID {
-			return true
+func (sessions SurveySession) containsAttendee(registration attendeeRegistered) (Attendee, bool) {
+	for _, a := range sessions[registration.SurveyID] {
+		if a.ID == registration.Attendee.ID {
+			return a, true
 		}
 	}
-	return false
+
+	return Attendee{}, false
 }
 
-func (sessions SurveySession) add(surveyID int, attendee Attendee) bool {
-	var successfull bool = false 
-	if sessions.exists(surveyID) {
-		if !sessions.contains(surveyID, attendee) {
-			sessions[surveyID] = append(sessions[surveyID], attendee)
-			successfull = true 
+func (sessions SurveySession) add(registration attendeeRegistered) bool {
+	var successful bool = false 
+	if sessions.exists(registration.SurveyID) {
+		if attendee, found := sessions.containsAttendee(registration); found {
+			sessions[registration.SurveyID] = append(sessions[registration.SurveyID], attendee)
+			successful = true 
 		}
 	} else {
-		log.Printf("### SurveySession.add: SurveyID: %d doesn't exist\n", surveyID)
+		log.Printf("### SurveySession.add: SurveyID: %d doesn't exist\n", registration.SurveyID)
 	}
-	return successfull
+	return successful
+}
+
+func (sessions SurveySession) recordPoints(registration attendeeRegistered) {
+	for _, a := range sessions[registration.SurveyID] {
+		if a.ID == registration.Attendee.ID {
+			a.Points = registration.Attendee.Points
+			break
+		}
+	}
 }

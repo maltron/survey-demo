@@ -144,6 +144,7 @@ func main() {
 	// WebSocket Handlers
 	websocketRouter.Handle("SpeakerStartSurvey", drive.SpeakerStartSurvey)
 	websocketRouter.Handle("AttendeeRegistered", drive.AttendeeRegistered)
+	websocketRouter.Handle("AttendeeScored", drive.AttendeeScored)
 	
 	handler := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
