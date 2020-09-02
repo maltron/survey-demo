@@ -13,18 +13,30 @@ type attendeeRegistered struct {
 
 
 
-// AttendeeRegistered The Attendee entered into a particular session
-// { ID: }
-func AttendeeRegistered(client *socket.Client, data interface{}) {
+// AttendeeRegistration The Attendee entered into a particular session
+// {
+// 	"name":"AttendeeRegistration",
+// 	"data":{
+// 	   "surveyID":1,
+// 	   "attendee":{
+// 		  "id":1,
+// 		  "firstName":"John",
+// 		  "lastName":"Smith",
+// 		  "email":"john@smith.com",
+// 		  "points":0
+// 	   }
+// 	}
+//  }
+func AttendeeRegistration(client *socket.Client, data interface{}) {
 	var registration attendeeRegistered
 	if err := mapstructure.Decode(data, &registration); err != nil {
-		log.Printf("### AttendeeRegistered Unable to Decode: %v\n", err)
+		log.Printf("### AttendeeRegistration Unable to Decode: %v\n", err)
 		return 
 	}
 
 	if sessions.add(registration) {
 		// If the Attendee was succesfull added, inform the Client
-		client.Send <- listOfAttendees(registration)
+		client.Hub.Broadcast <- listOfAttendees(registration)
 	}
 	
 	log.Printf("Registration: %v\n", sessions[registration.SurveyID])

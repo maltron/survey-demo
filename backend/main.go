@@ -50,11 +50,9 @@ package main
 //     The Attendee is not a valid one (size greater than estipulated by the database)
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
-	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/handlers"
@@ -62,28 +60,13 @@ import (
 	"github.com/maltron/survey-demo/backend/survey"
 	"github.com/maltron/survey-demo/backend/socket"
 	"github.com/maltron/survey-demo/backend/drive"
+	"github.com/maltron/survey-demo/backend/util"
+	"github.com/maltron/survey-demo/backend/database"
 )
 
 const (
 	defaultSurveyPort string = "8080"
 	envSurveyPort     string = "SURVEY_PORT"
-
-	defaultDatabaseUser     string = "mauricio"
-	defaultDatabasePassword string = "maltron"
-	defaultDatabaseHost     string = "127.0.0.1"
-	defaultDatabasePort     string = "3306"
-	defaultDatabase         string = "survey"
-
-	envDatabaseUser     string = "SURVEY_DATABASE_USER"
-	envDatabasePassword string = "SURVEY_DATABASE_PASSWORD"
-	envDatabaseHost     string = "SURVEY_DATABASE_HOST"
-	envDatabasePort     string = "SURVEY_DATABASE_PORT"
-	envDatabase         string = "SURVEY_DATABASE"
-)
-
-var (
-	database *sql.DB
-	err      error
 )
 
 func main() {
@@ -92,38 +75,9 @@ func main() {
 	log.Println("|    \\| | |||  \\/|| | //|  \\   \\  /   | | \\||  \\  | |\\/||| / \\|")
 	log.Println("\\___ || \\_/||    /| \\// |  /_  / /    | |_/||  /_ | |  ||| \\_/|")
 	log.Println("\\____/\\____/\\_/\\_\\\\__/  \\____\\/_/     \\____/\\____\\\\_/  \\|\\____/")
-	log.Println("Connecting to the database")
-	// Connecting to the database
-	// database, err = sql.Open("mysql", databaseConnection())
-	// if err != nil {
-	// 	log.Fatal("Database Error.")
-	// 	panic(err.Error())
-	// }
-	// // Testing if we can perform queries
-	// err = database.Ping()
-	// if err != nil {
-	// 	log.Fatal("Database Error. Unable to connect. Ping failure")
-	// 	panic(err.Error())
-	// }
-	// defer database.Close()
-
-	// // Creating basic tables
-	// log.Println("Creating tables")
-	// rows, err := database.Query("create table if not exists survey_user(ID int not null auto_increment, firstName varchar(50) not null, lastName varchar(50) not null, unique(firstName, lastName), primary key(ID)) default charset utf8mb4 collate utf8mb4_unicode_ci")
-	// defer rows.Close()
-	// if err != nil {
-	// 	log.Fatal("Database Error. Unable to create basic tables")
-	// 	panic(err.Error())
-	// }
-
-	// // Pass a reference of database to User Object
-	// survey.Database = database
 
 	// Fetching Port number
-	port, ok := os.LookupEnv(envSurveyPort)
-	if !ok {
-		port = defaultSurveyPort
-	}
+	port := util.DefaultValue(envSurveyPort, defaultSurveyPort)
 	log.Printf("SURVEY DEMO: Started, Port :%v\n", port)
 
 	router := mux.NewRouter()
@@ -138,13 +92,14 @@ func main() {
 	router.HandleFunc("/speaker", survey.GetSpeakers).Methods("GET")
 	
 	// WEBSOCKET
-	websocketRouter := socket.NewRouter()
+	websocketRouter := socket.NewRouter(database.Connection())
 	router.Handle("/ws", websocketRouter)
 
 	// WebSocket Handlers
 	websocketRouter.Handle("SpeakerStartSurvey", drive.SpeakerStartSurvey)
-	websocketRouter.Handle("AttendeeRegistered", drive.AttendeeRegistered)
+	websocketRouter.Handle("AttendeeRegistration", drive.AttendeeRegistration)
 	websocketRouter.Handle("AttendeeScored", drive.AttendeeScored)
+	websocketRouter.Handle("SpeakerJumpQuestion", drive.SpeakerJumpQuestion)
 	
 	handler := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
@@ -158,32 +113,3 @@ func main() {
 	// log.Fatal(http.ListenAndServeTLS(fmt.Sprintf(":%v", port), "server.crt", "server.key", handler))
 }
 
-func databaseConnection() string {
-	username, ok := os.LookupEnv(envDatabaseUser)
-	if !ok {
-		username = defaultDatabaseUser
-	}
-
-	password, ok := os.LookupEnv(envDatabasePassword)
-	if !ok {
-		password = defaultDatabasePassword
-	}
-
-	host, ok := os.LookupEnv(envDatabaseHost)
-	if !ok {
-		host = defaultDatabaseHost
-	}
-
-	port, ok := os.LookupEnv(envDatabasePort)
-	if !ok {
-		port = defaultDatabasePort
-	}
-
-	database, ok := os.LookupEnv(envDatabase)
-	if !ok {
-		database = defaultDatabase
-	}
-
-	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?charset=utf8mb4",
-		username, password, host, port, database)
-}

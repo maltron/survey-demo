@@ -28,23 +28,24 @@ func (sessions SurveySession) exists(surveyID int) bool {
 	return found
 }
 
-func (sessions SurveySession) containsAttendee(registration attendeeRegistered) (Attendee, bool) {
+func (sessions SurveySession) containsAttendee(registration attendeeRegistered) bool {
 	for _, a := range sessions[registration.SurveyID] {
 		if a.ID == registration.Attendee.ID {
-			return a, true
+			return true
 		}
 	}
 
-	return Attendee{}, false
+	return false
 }
 
 func (sessions SurveySession) add(registration attendeeRegistered) bool {
 	var successful bool = false 
 	if sessions.exists(registration.SurveyID) {
-		if attendee, found := sessions.containsAttendee(registration); found {
-			sessions[registration.SurveyID] = append(sessions[registration.SurveyID], attendee)
+		if !sessions.containsAttendee(registration) {
+			sessions[registration.SurveyID] = append(sessions[registration.SurveyID], 
+																registration.Attendee)
 			successful = true 
-		}
+		} 
 	} else {
 		log.Printf("### SurveySession.add: SurveyID: %d doesn't exist\n", registration.SurveyID)
 	}
@@ -52,9 +53,9 @@ func (sessions SurveySession) add(registration attendeeRegistered) bool {
 }
 
 func (sessions SurveySession) recordPoints(registration attendeeRegistered) {
-	for _, a := range sessions[registration.SurveyID] {
-		if a.ID == registration.Attendee.ID {
-			a.Points = registration.Attendee.Points
+	for i := 0; i < len(sessions[registration.SurveyID]); i++ {
+		if sessions[registration.SurveyID][i].ID == registration.Attendee.ID {
+			sessions[registration.SurveyID][i].Points = registration.Attendee.Points
 			break
 		}
 	}
