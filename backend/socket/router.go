@@ -3,8 +3,8 @@ package socket
 import (
 	"log"
 	"net/http"
-
 	"github.com/gorilla/websocket"
+	"database/sql"
 )
 
 var upgrader = websocket.Upgrader{
@@ -19,12 +19,18 @@ type Handler func(*Client, interface{})
 // Router Keeps information about each handler based on a key
 type Router struct {
 	rules map[string]Handler
+	hub *Hub
+	database *sql.DB
 }
 
 // NewRouter Constructor to create a new instance of
-func NewRouter() *Router {
+func NewRouter(database *sql.DB) *Router {
+	hub := NewHub()
+	go hub.Run()
 	return &Router{
 		rules: make(map[string]Handler),
+		hub: hub,
+		database: database,
 	}
 }
 
@@ -50,7 +56,8 @@ func (router *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	defer socket.Close()
 
-	client := NewClient(socket, router.FindHandler)
+	client := NewClient(router.hub, socket, router.FindHandler, router.database)
+	router.hub.register <- client
 	go client.Write() // Initiating Write in a go subrotine
 	client.Read()
 }
