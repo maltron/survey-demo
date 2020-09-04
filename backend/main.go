@@ -57,7 +57,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/maltron/survey-demo/backend/survey"
+	"github.com/maltron/survey-demo/backend/model"
 	"github.com/maltron/survey-demo/backend/socket"
 	"github.com/maltron/survey-demo/backend/drive"
 	"github.com/maltron/survey-demo/backend/util"
@@ -81,15 +81,15 @@ func main() {
 	log.Printf("SURVEY DEMO: Started, Port :%v\n", port)
 
 	router := mux.NewRouter()
-	router.HandleFunc("/attendee/{id}", survey.GetAttendee).Methods("GET")
-	router.HandleFunc("/attendee", survey.GetAttendees).Methods("GET")
-	router.HandleFunc("/attendee", survey.PutAttendee).Methods("PUT")
-	router.HandleFunc("/attendee", survey.PostAttendee).Methods("POST")
-	router.HandleFunc("/attendee", survey.DeleteAttendee).Methods("DELETE")
-	router.HandleFunc("/attendee/ranks/{surveyID}", survey.GetRanks).Methods("GET")
-	router.HandleFunc("/survey/questions/{surveyID}", survey.GetSurveyQuestions).Methods("GET")
-	router.HandleFunc("/survey/answer", survey.PostAttendeeAnswer).Methods("POST")
-	router.HandleFunc("/speaker", survey.GetSpeakers).Methods("GET")
+	router.HandleFunc("/attendee/{id}", model.GetAttendee).Methods("GET")
+	router.HandleFunc("/attendee", model.GetAttendees).Methods("GET")
+	router.HandleFunc("/attendee", model.PutAttendee).Methods("PUT")
+	router.HandleFunc("/attendee", model.PostAttendee).Methods("POST")
+	router.HandleFunc("/attendee", model.DeleteAttendee).Methods("DELETE")
+	//router.HandleFunc("/attendee/ranks/{surveyID}", model.GetRanks).Methods("GET")
+	router.HandleFunc("/survey/questions/{surveyID}", model.GetSurveyQuestions).Methods("GET")
+	router.HandleFunc("/survey/answer", model.PostAttendeeAnswer).Methods("POST")
+	router.HandleFunc("/speaker", model.GetSpeakers).Methods("GET")
 	
 	// WEBSOCKET
 	websocketRouter := socket.NewRouter(database.Connection())
@@ -97,9 +97,10 @@ func main() {
 
 	// WebSocket Handlers
 	websocketRouter.Handle("SpeakerStartSurvey", drive.SpeakerStartSurvey)
-	websocketRouter.Handle("AttendeeRegistration", drive.AttendeeRegistration)
-	websocketRouter.Handle("AttendeeScored", drive.AttendeeScored)
 	websocketRouter.Handle("SpeakerJumpQuestion", drive.SpeakerJumpQuestion)
+	websocketRouter.Handle("AttendeeStarted", drive.AttendeeStarted) // AttendeeStep.started
+	websocketRouter.Handle("AttendeeRegistration", drive.AttendeeRegistration)
+	websocketRouter.Handle("AttendeeScored", drive.AttendeeScored)		
 	
 	handler := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
