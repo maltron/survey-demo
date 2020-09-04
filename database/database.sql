@@ -173,6 +173,6 @@ insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(14,
 insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(15, 'Cassandra','Clark', 'cassandra@clark.com', 1);
 
 # Survey Attendees Answers
-create table if not exists survey_attendee_answers(ID int not null auto_increment, surveyID int not null, attendeeID int not null, questionID int not null, answerID int not null, foreign key(surveyID) references survey(ID), foreign key(questionID) references survey_question(ID), foreign key(attendeeID) references survey_attendee(ID), foreign key(answerID) references survey_answer(ID), unique(surveyID, attendeeID, questionID), primary key(ID));
+create table if not exists survey_attendee_answered(ID int not null auto_increment, surveyID int not null, attendeeID int not null, questionID int not null, answerID int not null, foreign key(surveyID) references survey(ID), foreign key(questionID) references survey_question(ID), foreign key(attendeeID) references survey_attendee(ID), foreign key(answerID) references survey_answer(ID), unique(surveyID, attendeeID, questionID), primary key(ID));
 
 

@@ -100,6 +100,7 @@ func main() {
 	websocketRouter.Handle("SpeakerJumpQuestion", drive.SpeakerJumpQuestion)
 	websocketRouter.Handle("AttendeeStarted", drive.AttendeeStarted) // AttendeeStep.started
 	websocketRouter.Handle("AttendeeRegistration", drive.AttendeeRegistration)
+	websocketRouter.Handle("AttendeeAnswered", drive.AttendeeAnswered)
 	websocketRouter.Handle("AttendeeScored", drive.AttendeeScored)		
 	
 	handler := handlers.CORS(

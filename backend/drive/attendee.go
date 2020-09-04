@@ -55,29 +55,39 @@ func AttendeeRegistration(client *socket.Client, data interface{}) {
 	}
 
 	log.Printf(">>> AttendeeRegistration SaveAttendee: %v\n", registration.Attendee)
-	database.SaveAttendee(client.Database, &registration.Attendee)
-
-	if sessions.add(registration) {
+	if database.SaveAttendee(client.Database, &registration.Attendee) {
 		// If the Attendee was succesfull added, inform the Client
-		client.Hub.Broadcast <- listOfAttendees(registration)
+		client.Hub.Broadcast <- socket.Command{ Name: "AttendeeRegistered", Data: registration }
 	}
-	
-	log.Printf("Registration: %v\n", sessions[registration.SurveyID])
+}
+
+// AttendeeAnswered Attendee answered a specific Question
+func AttendeeAnswered(client *socket.Client, data interface{}) {
+	log.Printf(">>> AttendeeScored: %v\n", data)
+	var answered model.Answered
+	if err := mapstructure.Decode(data, &answered); err != nil {
+		log.Printf("### AttendeeScored Unable to Decode: %v\n", err)
+		return 
+	}
+
+	database.RecordAttendeeAnswered(client.Database, &answered)
 }
 
 // AttendeeScored Record Points the attendee scored for each particular question
 // and then, inform the Client with a list of new Score
 func AttendeeScored(client *socket.Client, data interface{}) {
+	log.Printf(">>> AttendeeScored: %v\n", data)
 	var registration attendeeRegistration
 	if err := mapstructure.Decode(data, &registration); err != nil {
 		log.Printf("### AttendeeScored Unable to Decode: %v\n", err)
 		return 
 	}
 
-	sessions.recordPoints(registration)
-	client.Send <- listOfAttendees(registration)
+	if database.RecordPoints(client.Database, registration.Attendee) {
+		client.Hub.Broadcast <- socket.Command{ Name: "AttendeeScored", Data: registration }
+	}	
 }
 
-func listOfAttendees(registration attendeeRegistration) socket.Command {
-	return socket.Command{ Name: "Attendees", Data: sessions[registration.SurveyID] }
-}
+// func listOfAttendees(registration attendeeRegistration) socket.Command {
+// 	return socket.Command{ Name: "Attendees", Data: sessions[registration.SurveyID] }
+// }
