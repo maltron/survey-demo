@@ -2,16 +2,29 @@ import React from "react";
 import { backendURL } from "@app/Backend/Backend";
 
 export enum Option {
-    AttendeeRegister = "AttendeeRegister"
+    SpeakerStartSurvey = "SpeakerStartSurvey",
+    SpeakerJumpQuestion = "SpeakerJumpQuestion",
+    SurveyQuestions = "SurveyQuestions",
+    Attendees = "Attendees",
+    AttendeeStarted = "AttendeeStarted",
+    AttendeeRegistration = "AttendeeRegistration"
 }
 
 export interface Command {
-    option: Option; 
+    name: Option; 
     data: any; 
 }
 
+export interface SpeakerForSurvey {
+    speakerID: number;
+    surveyID: number;
+    questionID: number;
+}
+
 export const sendBackend = (webSocket: WebSocket, command: Command) => {
-    webSocket.send(JSON.stringify(command));
+    if(webSocket.readyState === WebSocket.OPEN)
+        webSocket.send(JSON.stringify(command));
+    else console.log("### WARNING: WEB SOCKET NOT CONNECTED");
 }
 
 export const useWebSocket = (): [ boolean, WebSocket ] => {

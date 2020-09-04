@@ -10,15 +10,8 @@ export interface Attendee {
     firstName: string;
     lastName: string; 
     email: string; 
+    points: number;
     survey: number; 
-}
-
-// Description of a Rank of Attendees
-export interface AttendeeRank {
-    ID: number; 
-    firstName: string; 
-    lastName: string; 
-    points: number; 
 }
 
 // Description of a Speaker

@@ -5,7 +5,7 @@ import "./survey-demo.css";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 import { Login } from "@app/Login/Login";
 import { ListSurveys } from "@app/ListSurveys/ListSurveys";
-import { DriveQuestions } from '@app/DriveQuestions/DriveQuestions';
+import { SpeakerQuestions } from '@app/Speaker/SpeakerQuestions';
 
 import { AttendeeSurvey } from "@app/Attendee/Attendee";
 
@@ -15,8 +15,8 @@ const App: React.FunctionComponent = () => {
       <Switch>
         <Route exact path="/login" component={Login}/>
         <Route exact path="/main" component={ListSurveys}/>
-        <Route exact path="/drive/:survey" 
-          render={({ match }) => <DriveQuestions survey={parseInt(match.params.survey)}/>}/>
+        <Route exact path="/speaker/:survey" 
+          render={({ match }) => <SpeakerQuestions survey={parseInt(match.params.survey)}/>}/>
         <Route exact path="/attendee/:survey" 
             render={ ({ match }) => <AttendeeSurvey survey={parseInt(match.params.survey)}/>}/>
       </Switch>

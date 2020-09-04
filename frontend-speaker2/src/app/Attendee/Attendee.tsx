@@ -6,81 +6,87 @@ import { Page, PageSection, PageSectionVariants,
 } from "@patternfly/react-core";
 import { Attendee, Question, Answer, questionJSON, answeredJSON } from "@app/Shared/Model";
 import { backendURL } from "@app/Backend/Backend";
-import { Command, Option, useWebSocket, sendBackend } from "@app/Backend/SocketCommunication";
-import { useAPIQuestions } from "@app/Backend/APIReqquest";
+import { useWebSocket, sendBackend, Command, Option 
+} from "@app/Backend/SocketCommunication";
 import { AttendeeDuring } from "@app/Attendee/AttendeeDuring";
 import { AttendeeEnd } from "@app/Attendee/AttendeeEnd";
 import { AttendeeQuestion } from "@app/Attendee/AttendeeShared";
 import { Wait, Status, BigTitle } from "@app/Shared/Components";
 
 enum AttendeeStep {
-    login, // Attendee will subscribe to a particular Survey
+    started, // Attendee started to a particular Survey
     before, // Attendee will answer initial questions
     getready, // Wait for Speaker to Begin on the first question
     during, // Attendee will engage of presentation
     end  // Attendee will answer final questions
 }
 
-interface AttendeeProps {
-    survey: number; 
-}
-
-export const AttendeeSurvey: React.FunctionComponent<AttendeeProps> = ({ survey }) => {
-    const [ errorMessage, setErrorMessage ] = React.useState<string>("");
-    const [ step, setStep ] = React.useState<AttendeeStep>(AttendeeStep.login);
-    const [ attendee, setAttendee ] = React.useState<Attendee>({
-        ID: 0, firstName: "", lastName: "", email: "", survey
-    })
-    const [ currentQuestion, setCurrentQuestion ] = React.useState<number>(0);
-    const [ questionsBefore, setQuestionsBefore ] = React.useState<Array<Question>>([]);
-    const [ questionsAfter, setQuestionsAfter ] = React.useState<Array<Question>>([]);
-    const [ loading, questions ] = useAPIQuestions(survey);
-
+export const AttendeeSurvey: React.FunctionComponent<{ survey: number }> = ({ survey }) => {
     const [ connected, websocket ] = useWebSocket();
+    const [ errorMessage, setErrorMessage ] = React.useState<string>("");
+    const [ step, setStep ] = React.useState<AttendeeStep>(AttendeeStep.started);
+    const [ attendee, setAttendee ] = React.useState<Attendee>({
+        ID: 0, firstName: "", lastName: "", email: "", points:0, survey
+    })
+    const [ loadingQuestions, setLoadingQuestions ] = React.useState<boolean>(true);
+    const [ currentQuestion, setCurrentQuestion ] = React.useState<number>(0);
+    const [ questions, setQuestions ] = React.useState<Array<Question>>([]);
+    const [ questionsBefore, setQuestionsBefore ] = React.useState<Array<Question>>([]);
+    const [ questionsAfter, setQuestionsAfter ] = React.useState<Array<Question>>([]);    
 
     React.useEffect(() => {
         // If an WebSocket communiction is established, setup a message callback
-        console.log(">>> DriveQuestions useEffect()");
+        console.log(">>> DriveQuestions useEffect(): ", connected);
         if(connected) {
-          console.log(">>> DriveQuestions useEffect() connected");
           websocket.onmessage = backendMessage;
-          // websocket.send(JSON.stringify({ survey: survey, action: "START" }));
+          // Tell backend to send all questions related to this survey
+          sendBackend(websocket, { name: Option.AttendeeStarted, 
+                data: { surveyID: survey }})
         }
     
     }, [connected]);
 
+    // WEBSOCKET: Receveing Messages from Backend
     const backendMessage = (event: MessageEvent) => {
-        console.log(`>>> backendMessage(): ${event.data} ${event.lastEventId} ${event.origin} ${event.ports} ${event.source}`);
+        var response: Command = JSON.parse(event.data);
+        // Receving Questions 
+        if(response.name === Option.SurveyQuestions) {
+            setQuestions(response.data);
+            setLoadingQuestions(false);
+        }                
     }
 
     React.useEffect(() => {
         // If we're reading loading questions, let's split into different 
         // variables to be easily handled
-        if(!loading) {
+        if(!loadingQuestions) {
             console.log("React.useEffect loading. Loading Questions");
             setQuestionsBefore(questions.filter(question => question.kind == -1));
             setQuestionsAfter(questions.filter(question => question.kind == 1));
         }
-    }, [loading]);
+    }, [loadingQuestions]);
 
     const handleStart = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-        fetch(`http://${backendURL()}/attendee`, {
-            method: "PUT", headers: { "Content-type": "application/json" },
-            body: JSON.stringify(attendee)
-        }).then(response => {
-            if(response.status == 201) {
-                response.json().then(data => {
-                    setErrorMessage("");
-                    setAttendee(data);
-                    const { ID } = data; 
-                    sendBackend(websocket, 
-                        { option: Option.AttendeeRegister, data: { surveyID: survey, attendeeID: ID } });
-                    setStep(AttendeeStep.before);
-                });
-            } else {
-                setErrorMessage("Server Error");
-            }
-        });
+        sendBackend(websocket, { name: Option.AttendeeRegistration, 
+            data: { survey, attendee }});
+        setStep(AttendeeStep.before);
+        // fetch(`http://${backendURL()}/attendee`, {
+        //     method: "PUT", headers: { "Content-type": "application/json" },
+        //     body: JSON.stringify(attendee)
+        // }).then(response => {
+        //     if(response.status == 201) {
+        //         response.json().then(data => {
+        //             setErrorMessage("");
+        //             setAttendee(data);
+        //             const { ID } = data; 
+        //             sendBackend(websocket, 
+        //                 { option: Option.AttendeeRegister, data: { surveyID: survey, attendeeID: ID } });
+        //             setStep(AttendeeStep.before);
+        //         });
+        //     } else {
+        //         setErrorMessage("Server Error");
+        //     }
+        // });
     }
 
     const handleBeforeQuestion = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
@@ -121,8 +127,8 @@ export const AttendeeSurvey: React.FunctionComponent<AttendeeProps> = ({ survey 
 
     return (
         <React.Fragment>
-            { loading && (<Wait/>)}
-            { !loading && (<Page>{currentStep()}</Page>)}
+            { loadingQuestions && (<Wait/>)}
+            { !loadingQuestions && (<Page>{currentStep()}</Page>)}
         </React.Fragment>
     )
 }
