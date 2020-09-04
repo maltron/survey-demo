@@ -28,14 +28,12 @@ func Connection() *sql.DB {
 	log.Printf(">>> Connecting MySQL: %v\n", connectionURL)
 	database, err := sql.Open("mysql", connectionURL)
 	if err != nil {
-		log.Fatal("Database Error.")
-		panic(err.Error())
+		log.Fatalf("### Database Error: %v\n", err)
 	}
 	// Testing if we can perform queries
 	err = database.Ping()
 	if err != nil {
-		log.Fatal("Database Error. Unable to connect. Ping failure")
-		panic(err.Error())
+		log.Fatalf("### Database Error. Unable to connect. Ping failure: %v\n", err)
 	}
 
 	// // Creating basic tables
@@ -47,7 +45,7 @@ func Connection() *sql.DB {
 	// 	panic(err.Error())
 	// }
 
-	log.Printf(">>> Connected MySQL: %v\n", connectionURL)
+	log.Println("[ CONNECTED ]")
 	return database
 }
 
