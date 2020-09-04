@@ -152,7 +152,7 @@ select question.ID as questionID, question.question, question.timer, question.po
 select count(question.question) as number_of_questions from survey survey join survey_has_questions sq on sq.surveyID = survey.ID join survey_question question on sq.questionID = question.ID where survey.ID = 1;
 
 # Survey Attendees
-create table if not exists survey_attendee(ID int not null auto_increment, firstName varchar(50) not null, lastName varchar(50) not null, email varchar(150) not null, surveyID int not null, unique(firstName, lastName), unique(email, surveyID), foreign key(surveyID) references survey(ID), primary key(ID)) default charset utf8mb4 collate utf8mb4_unicode_ci;
+create table if not exists survey_attendee(ID int not null auto_increment, firstName varchar(50) not null, lastName varchar(50) not null, email varchar(150) not null, points int not null default 0, surveyID int not null, unique(firstName, lastName, email, surveyID), foreign key(surveyID) references survey(ID), primary key(ID)) default charset utf8mb4 collate utf8mb4_unicode_ci;
 delete from survey_attendee;
 
 # Adding some users for testing
@@ -171,29 +171,6 @@ insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(12,
 insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(13, 'Donald','Trump', 'donald@trump.com', 1);
 insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(14, 'Serena','Williams', 'serena@williams.com', 1);
 insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(15, 'Cassandra','Clark', 'cassandra@clark.com', 1);
-
-# Survey Attendee Points (where you get the rank)
-create table if not exists survey_attendee_points(ID int not null auto_increment, surveyID int not null, attendeeID int not null, points int default 0, foreign key(surveyID) references survey(ID), foreign key(attendeeID) references survey_attendee(ID), unique(surveyID, attendeeID), primary key(ID));
-delete from survey_attendee_points;
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 1, 87);
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 2, 93);
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 3, 12);
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 4, 5);
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 5, 50);
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 6, 150);
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 7, 10);
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 8, 23);
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 9, 78);
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 10, 33);
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 11, 32);
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 12, 77);
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 13, 17);
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 14, 26);
-insert into survey_attendee_points(surveyID, attendeeID, points) values(1, 15, 64);
-
-# Selecting Ranking from Users to a given
-select attendee.ID, attendee.firstName, attendee.lastName, ap.points from survey survey join survey_attendee_points ap on survey.ID = ap.surveyID join survey_attendee attendee on attendee.ID = ap.attendeeID where survey.ID = 1 order by ap.points desc;
-
 
 # Survey Attendees Answers
 create table if not exists survey_attendee_answers(ID int not null auto_increment, surveyID int not null, attendeeID int not null, questionID int not null, answerID int not null, foreign key(surveyID) references survey(ID), foreign key(questionID) references survey_question(ID), foreign key(attendeeID) references survey_attendee(ID), foreign key(answerID) references survey_answer(ID), unique(surveyID, attendeeID, questionID), primary key(ID));
