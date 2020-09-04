@@ -2,15 +2,34 @@ package drive
 
 import (
 	"log"
-	"github.com/maltron/survey-demo/backend/socket"
 	"github.com/mitchellh/mapstructure"
+	"github.com/maltron/survey-demo/backend/socket"
+	"github.com/maltron/survey-demo/backend/model"
+	"github.com/maltron/survey-demo/backend/database"
 )
 
-type attendeeRegistered struct {
+type attendeeRegistration struct {
 	SurveyID int      `json:"surveyID"`
-	Attendee Attendee `json:"attendee"`
+	Attendee model.Attendee `json:"attendee"`
 }
 
+// AttendeeStarted Attendee initiated a session in the 
+// Registration step
+// Attendee.started
+func AttendeeStarted(client *socket.Client, data interface{}) {
+	log.Printf(">>> AttedeeStarted: %v\n", data)
+	var registration attendeeRegistration
+	if err := mapstructure.Decode(data, &registration); err != nil {
+		log.Printf("### AttendeeStarted Unable to Decode: %v\n", err)
+	}
+
+	// Fetch all the questions for this Survey and returns to 
+	// this particular Attendee
+	if questions, err := database.GetSurveyQuestions(client.Database, registration.SurveyID); err == nil {
+		log.Printf(">>> AttendeeStarted Returning questions")
+		client.Send <- socket.Command{ Name: "SurveyQuestions", Data: questions }
+	}
+}
 
 
 // AttendeeRegistration The Attendee entered into a particular session
@@ -28,11 +47,15 @@ type attendeeRegistered struct {
 // 	}
 //  }
 func AttendeeRegistration(client *socket.Client, data interface{}) {
-	var registration attendeeRegistered
+	log.Printf(">>> AttendeeRegistration: %v\n", data)
+	var registration attendeeRegistration
 	if err := mapstructure.Decode(data, &registration); err != nil {
 		log.Printf("### AttendeeRegistration Unable to Decode: %v\n", err)
 		return 
 	}
+
+	log.Printf(">>> AttendeeRegistration SaveAttendee: %v\n", registration.Attendee)
+	database.SaveAttendee(client.Database, &registration.Attendee)
 
 	if sessions.add(registration) {
 		// If the Attendee was succesfull added, inform the Client
@@ -45,7 +68,7 @@ func AttendeeRegistration(client *socket.Client, data interface{}) {
 // AttendeeScored Record Points the attendee scored for each particular question
 // and then, inform the Client with a list of new Score
 func AttendeeScored(client *socket.Client, data interface{}) {
-	var registration attendeeRegistered
+	var registration attendeeRegistration
 	if err := mapstructure.Decode(data, &registration); err != nil {
 		log.Printf("### AttendeeScored Unable to Decode: %v\n", err)
 		return 
@@ -55,6 +78,6 @@ func AttendeeScored(client *socket.Client, data interface{}) {
 	client.Send <- listOfAttendees(registration)
 }
 
-func listOfAttendees(registration attendeeRegistered) socket.Command {
+func listOfAttendees(registration attendeeRegistration) socket.Command {
 	return socket.Command{ Name: "Attendees", Data: sessions[registration.SurveyID] }
 }

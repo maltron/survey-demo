@@ -10,7 +10,7 @@ import (
 type speakerForSurvey struct {
 	SpeakerID int `json:"speakerID"`
 	SurveyID  int `json:"surveyID"`
-	CurrentQuestionID int `json:"questionID"`
+	QuestionID int `json:"questionID"`
 }
 
 // SpeakerStartSurvey creates a new Session, so Attendees and Join
@@ -32,6 +32,7 @@ func SpeakerStartSurvey(client *socket.Client, data interface{}) {
 
 // SpeakerJumpQuestion A way to inform Attendees which Question should be displayed
 func SpeakerJumpQuestion(client *socket.Client, data interface{}) {
+	log.Printf(">>> SpeakerJumpQuestion: %v\n", data)
 	var speakerForSurvey speakerForSurvey
 	if err := mapstructure.Decode(data, &speakerForSurvey); err != nil {
 		log.Printf("### SpeakerJumpQuestion Unable to Decode: %v\n", err)
@@ -39,5 +40,5 @@ func SpeakerJumpQuestion(client *socket.Client, data interface{}) {
 	}
 
 	// Inform Everyone which question should be displayed
-	client.Send <- socket.Command{ Name: "SpeakerJumpQuestion", Data: speakerForSurvey }
+	client.Hub.Broadcast <- socket.Command{ Name: "SpeakerJumpQuestion", Data: speakerForSurvey }
 }
