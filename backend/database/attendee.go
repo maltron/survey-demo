@@ -8,9 +8,9 @@ import (
 )
 
 // AttendeeExists Check if Attendee is already stored
-func AttendeeExists(database *sql.DB, attendee *model.Attendee) (bool, error) {
+func AttendeeExists(database *Connection, attendee *model.Attendee) (bool, error) {
 	query := fmt.Sprintf("select ID from survey_attendee where surveyID = %d and email = '%v'", attendee.Survey, attendee.Email)
-	rows, err := database.Query(query)
+	rows, err := database.connection.Query(query)
 	defer rows.Close()
 	if err != nil {
 		log.Printf("### Database Query fail (Query: %v): %v\n", query, err)
@@ -30,7 +30,7 @@ func AttendeeExists(database *sql.DB, attendee *model.Attendee) (bool, error) {
 }
 
 // SaveAttendee Either insert or update depending if Attendee exists or not 
-func SaveAttendee(database *sql.DB, attendee *model.Attendee) bool {
+func SaveAttendee(database *Connection, attendee *model.Attendee) bool {
 	found, err := AttendeeExists(database, attendee)
 	if err != nil {
 		log.Printf("### SaveAttendee Failed: %v\n", err)
@@ -45,7 +45,7 @@ func SaveAttendee(database *sql.DB, attendee *model.Attendee) bool {
 		query = "insert into survey_attendee(firstName, lastName, email, surveyID) values(?, ?, ?, ?)"
 	}
 
-	statement, err := database.Prepare(query)
+	statement, err := database.connection.Prepare(query)
 	defer statement.Close()
 	if err != nil {
 		log.Printf("### SaveAttendee: Prepare Unable to Store Attendee: %v\n", err)
@@ -80,9 +80,9 @@ func SaveAttendee(database *sql.DB, attendee *model.Attendee) bool {
 }
 
 // RecordPoints save the score of this Attendee
-func RecordPoints(database *sql.DB, attendee model.Attendee) bool {
+func RecordPoints(database *Connection, attendee model.Attendee) bool {
 	var query string = "update survey_attendee set points=? where ID = ?"
-	statement, err := database.Prepare(query)
+	statement, err := database.connection.Prepare(query)
 	defer statement.Close()
 	if err != nil {
 		log.Printf("### RecordPoints Failed Prepare: %v\n", err)
@@ -106,9 +106,9 @@ func RecordPoints(database *sql.DB, attendee model.Attendee) bool {
 
 // RecordAttendeeAnswered Stores the information of a particular Answer into the database
 // for future retrival
-func RecordAttendeeAnswered(database *sql.DB, answered *model.Answered) bool {
+func RecordAttendeeAnswered(database *Connection, answered *model.Answered) bool {
 	query := fmt.Sprintf("select ID from survey_attendee_answered where surveyID = %d and attendeeID = %d and questionID = %d", answered.SurveyID, answered.AttendeeID, answered.QuestionID)
-	rows, err := database.Query(query)
+	rows, err := database.connection.Query(query)
 	defer rows.Close()
 	if err != nil {
 		log.Printf("### RecordAttendeeAnswered (query: %v): %v\n", query, err)
@@ -132,17 +132,17 @@ func RecordAttendeeAnswered(database *sql.DB, answered *model.Answered) bool {
 	} else {
 		query = "insert into survey_attendee_answered(answerID, surveyID, attendeeID, questionID) values(?, ?, ?, ?)"
 	}
-	statement, err := database.Prepare(query)
+	statement, err := database.connection.Prepare(query)
 	defer statement.Close()
 	if err != nil {
-		log.Printf("### RecordAttendeeAnswered Prepare<UPDATE>: %v\n", err)
+		log.Printf("### RecordAttendeeAnswered Prepare: %v\n", err)
 		return false 
 	}
 
 	result, err := statement.Exec(answered.AnswerID, answered.SurveyID, 
 								answered.AttendeeID, answered.QuestionID)
 	if err != nil {
-		log.Printf("### RecordAttendeeAnswered Exec<UPDATE>: %v\n", err)
+		log.Printf("### RecordAttendeeAnswered Exec: %v\n", err)
 		return false
 	}
 

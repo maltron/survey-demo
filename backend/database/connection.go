@@ -1,11 +1,24 @@
 package database
 
-import (
+import (	
 	"fmt"
 	"log"
 	"database/sql"
 	"github.com/maltron/survey-demo/backend/util"
 )
+
+// SingleRow Represents the minimum information needed in order to fetch a single 
+// row in the database and map into a struct 
+type SingleRow struct {
+	query string 
+	scan func(rows *sql.Rows) error
+
+}
+
+// Connection Represents information about a Database Connection
+type Connection struct {
+	connection *sql.DB
+}
 
 const (
 	defaultDatabaseUser     string = "mauricio"
@@ -21,19 +34,32 @@ const (
 	envDatabase         string = "SURVEY_DATABASE"
 )
 
-// Connection Return a instance of a Database Connection to be used
-func Connection() *sql.DB {
+func databaseConnectionURL() string {
+	username := util.DefaultValue(envDatabaseUser, defaultDatabaseUser)
+	password := util.DefaultValue(envDatabasePassword, defaultDatabasePassword)
+	host := util.DefaultValue(envDatabaseHost, defaultDatabaseHost)
+	port := util.DefaultValue(envDatabasePort, defaultDatabasePort)
+	databaseName := util.DefaultValue(envDatabase, defaultDatabase)
+
+	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?charset=utf8mb4",
+		username, password, host, port, databaseName)
+}
+
+// NewConnection Returns a new instance of a Database Connection
+func NewConnection() (*Connection, error) {
 	// Starting to Connecting to the database
-	connectionURL := databaseConnection()
+	connectionURL := databaseConnectionURL()
 	log.Printf(">>> Connecting MySQL: %v\n", connectionURL)
-	database, err := sql.Open("mysql", connectionURL)
+	conn, err := sql.Open("mysql", connectionURL)
 	if err != nil {
-		log.Fatalf("### Database Error: %v\n", err)
+		log.Printf("### Database Error: %v\n", err)
+		return &Connection{}, err
 	}
 	// Testing if we can perform queries
-	err = database.Ping()
+	err = conn.Ping()
 	if err != nil {
-		log.Fatalf("### Database Error. Unable to connect. Ping failure: %v\n", err)
+		log.Printf("### Database Error. Unable to connect. Ping failure: %v\n", err)
+		return &Connection{}, err
 	}
 
 	// // Creating basic tables
@@ -46,16 +72,26 @@ func Connection() *sql.DB {
 	// }
 
 	log.Println("[ CONNECTED ]")
-	return database
+	return &Connection{ conn }, err
 }
 
-func databaseConnection() string {
-	username := util.DefaultValue(envDatabaseUser, defaultDatabaseUser)
-	password := util.DefaultValue(envDatabasePassword, defaultDatabasePassword)
-	host := util.DefaultValue(envDatabaseHost, defaultDatabaseHost)
-	port := util.DefaultValue(envDatabasePort, defaultDatabasePort)
-	databaseName := util.DefaultValue(envDatabase, defaultDatabase)
 
-	return fmt.Sprintf("%v:%v@tcp(%v:%v)/%v?charset=utf8mb4",
-		username, password, host, port, databaseName)
+// SelectSingle Executes a specific query and if found, go over scan each column 
+// and returns a boolean in case a line matches the query 
+func (database Connection) SelectSingle(singleRow SingleRow) (bool, error) {
+	rows, err := database.connection.Query(singleRow.query)
+	defer rows.Close()
+	if err != nil {
+		return false, err
+	}
+
+	var found bool = false 
+	for rows.Next() {
+		found = true
+		if err := singleRow.scan(rows); err != nil {
+			return false, err
+		}
+	}
+
+	return found, nil
 }
