@@ -50,6 +50,7 @@ package main
 //     The Attendee is not a valid one (size greater than estipulated by the database)
 
 import (
+	"github.com/maltron/survey-demo/backend/database"
 	"fmt"
 	"log"
 	"net/http"
@@ -59,9 +60,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/maltron/survey-demo/backend/model"
 	"github.com/maltron/survey-demo/backend/socket"
-	"github.com/maltron/survey-demo/backend/drive"
+	"github.com/maltron/survey-demo/backend/survey"
 	"github.com/maltron/survey-demo/backend/util"
-	"github.com/maltron/survey-demo/backend/database"
 )
 
 const (
@@ -90,18 +90,24 @@ func main() {
 	router.HandleFunc("/survey/questions/{surveyID}", model.GetSurveyQuestions).Methods("GET")
 	router.HandleFunc("/survey/answer", model.PostAttendeeAnswer).Methods("POST")
 	router.HandleFunc("/speaker", model.GetSpeakers).Methods("GET")
+
+	// Database Connection
+	var connection *database.Connection
+	if connection, err := database.NewConnection(); err != nil {
+		log.Fatalf("### Database Connection Failed: %v\n", err)
+	}
 	
 	// WEBSOCKET
-	websocketRouter := socket.NewRouter(database.Connection())
+	websocketRouter := socket.NewRouter(connection)
 	router.Handle("/ws", websocketRouter)
 
 	// WebSocket Handlers
-	websocketRouter.Handle("SpeakerStartSurvey", drive.SpeakerStartSurvey)
-	websocketRouter.Handle("SpeakerJumpQuestion", drive.SpeakerJumpQuestion)
-	websocketRouter.Handle("AttendeeStarted", drive.AttendeeStarted) // AttendeeStep.started
-	websocketRouter.Handle("AttendeeRegistration", drive.AttendeeRegistration)
-	websocketRouter.Handle("AttendeeAnswered", drive.AttendeeAnswered)
-	websocketRouter.Handle("AttendeeScored", drive.AttendeeScored)		
+	websocketRouter.Handle("SpeakerStartSurvey", survey.SpeakerStartSurvey)
+	websocketRouter.Handle("SpeakerJumpQuestion", survey.SpeakerJumpQuestion)
+	websocketRouter.Handle("AttendeeStarted", survey.AttendeeStarted) // AttendeeStep.started
+	websocketRouter.Handle("AttendeeRegistration", survey.AttendeeRegistration)
+	websocketRouter.Handle("AttendeeAnswered", survey.AttendeeAnswered)
+	websocketRouter.Handle("AttendeeScored", survey.AttendeeScored)		
 	
 	handler := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),
