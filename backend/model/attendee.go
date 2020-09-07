@@ -20,6 +20,12 @@ type Attendee struct {
 	Survey    int    `json:"survey"`
 }
 
+// Scan Reads each particular column from a Database Query and fill each field
+func (attendee *Attendee) Scan(rows *sql.Rows) error {
+	return rows.Scan(&attendee.ID, &attendee.FirstName, &attendee.LastName,
+		&attendee.Email, &attendee.Points, &attendee.Points)
+}
+
 // Stringer
 func (attendee Attendee) String() string {
 	return fmt.Sprintf("{\"id\":%d,\"firstName\":\"%v\",\"lastName\":\"%v\",\"email\":\"%v\",\"points\":%d,\"survey\":%d}",

@@ -28,10 +28,10 @@ type Question struct {
 // Answered Answer given by the Attendee
 type Answered struct {
 	ID         int `json:"ID"`
-	SurveyID   int `json:"survey"`
-	AttendeeID int `json:"attendee"`
-	QuestionID int `json:"question"`
-	AnswerID   int `json:"answer"`
+	SurveyID   int `json:"surveyID"`
+	AttendeeID int `json:"attendeeID"`
+	QuestionID int `json:"questionID"`
+	AnswerID   int `json:"answerID"`
 }
 
 func (answered *Answered) decodeJSON(r *http.Request) error {

@@ -1,9 +1,9 @@
 package socket
 
-import (
+import (	
 	"log"
-	"database/sql"
 	"github.com/gorilla/websocket"
+	"github.com/maltron/survey-demo/backend/database"
 )
 
 // FindHandler returns which Handler will be used based on what Command
@@ -16,17 +16,17 @@ type Client struct {
 	socket *websocket.Conn
 	findHandler FindHandler
 	Hub *Hub
-	Database *sql.DB
+	Connection *database.Connection
 }
 
 // NewClient Returns a instance of a Client struct, just like an constructor
-func NewClient(hub *Hub, socket *websocket.Conn, findHandler FindHandler, database *sql.DB) *Client {
+func NewClient(hub *Hub, socket *websocket.Conn, findHandler FindHandler, connection *database.Connection) *Client {
 	return &Client{
 		socket: socket,
 		Send: make(chan Command),
 		findHandler: findHandler,
 		Hub: hub,
-		Database: database,
+		Connection: connection,
 	}
 }
 

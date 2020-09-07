@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 	"github.com/gorilla/websocket"
-	"database/sql"
+	"github.com/maltron/survey-demo/backend/database"
 )
 
 var upgrader = websocket.Upgrader{
@@ -20,17 +20,17 @@ type Handler func(*Client, interface{})
 type Router struct {
 	rules map[string]Handler
 	hub *Hub
-	database *sql.DB
+	database *database.Connection
 }
 
 // NewRouter Constructor to create a new instance of
-func NewRouter(database *sql.DB) *Router {
+func NewRouter(connection *database.Connection) *Router {
 	hub := NewHub()
 	go hub.Run()
 	return &Router{
 		rules: make(map[string]Handler),
 		hub: hub,
-		database: database,
+		database: connection,
 	}
 }
 
