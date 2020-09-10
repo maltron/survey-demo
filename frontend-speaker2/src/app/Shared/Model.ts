@@ -39,6 +39,13 @@ export interface Question {
     kind: number; // -1 Before, 0 During, 1 After
 }
 
+// Information on what Question the Speaker is on
+export interface SpeakerForSurvey {
+    speakerID: number; 
+    surveyID: number; 
+    questionID: number; 
+}
+
 export const questionJSON = (question: Question): string => {
     return JSON.stringify({ ID: question.ID, 
             question: question.question, timer: question.timer, 
@@ -62,5 +69,14 @@ export const answeredJSON = (surveyID: number, attendeeID: number,
     return JSON.stringify({ ID: 0, survey: surveyID,
     attendee: attendeeID, question: question.ID, 
         answer: answeredID })
+}
+
+export enum AttendeeStep {
+    started, // Attendee started to a particular Survey
+    before, // Attendee will answer initial questions
+    getready, // Wait for Speaker to Begin on the first question
+    ready, // Attendee will engage of presentation
+    finish,  // Attendee will answer final questions
+    end  // Attendee The End
 }
 

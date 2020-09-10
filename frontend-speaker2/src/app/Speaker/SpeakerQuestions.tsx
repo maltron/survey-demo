@@ -4,16 +4,16 @@ import {
   Grid, GridItem,
   Card, CardTitle, CardBody, Divider,
   Button, ButtonVariant,
-  Progress, ProgressSize, ProgressVariant, ProgressMeasureLocation,
+  Progress, ProgressSize, ProgressMeasureLocation,
   TextContent, Text, TextVariants, 
   Toolbar, ToolbarItem, ToolbarContent, ToolbarItemVariant
 } from '@patternfly/react-core';
 import { Table, TableHeader, TableBody, IRow } from '@patternfly/react-table';
 // import { FilterIcon, TableIcon } from '@patternfly/react-icons';
 import { MainPage } from '@app/Shared/MainPage';
-import { Question, Attendee } from "@app/Shared/Model"
-import { useWebSocket, sendBackend, 
-         Command, Option, SpeakerForSurvey } from "@app/Backend/SocketCommunication";
+import { Question, Attendee, AttendeeStep } from "@app/Shared/Model"
+import { useWebSocket, sendBackend, Command, Option 
+} from "@app/Backend/SocketCommunication";
 import { Wait } from "@app/Shared/Components";
 
 interface SpeakerQuestionsProps {
@@ -26,7 +26,7 @@ interface QuestionProps {
 }
 
 export const SpeakerQuestions: React.FunctionComponent<SpeakerQuestionsProps> = ({ survey }) => {
-  const [ started, setStarted ] = React.useState<boolean>(false);
+  const [ step, setStep ] = React.useState<AttendeeStep>(AttendeeStep.started);
   const [ connected, websocket ] = useWebSocket();
   const [ loadingQuestions, setLoadingQuestions ] = React.useState<boolean>(true);
   const [ questions, setQuestions ] = React.useState<Array<Question>>([]);
@@ -52,11 +52,15 @@ export const SpeakerQuestions: React.FunctionComponent<SpeakerQuestionsProps> = 
     var response: Command = JSON.parse(event.data); 
     // Receiving Attendees Registration
     if(response.name === Option.Attendees) {
-      var rows: (IRow | string[])[] = response.data.map((rank: Attendee, index: number) => ({ cells: [ `#${index+1}`, rank.points, rank.firstName, rank.lastName ] }))
+      var rows: (IRow | string[])[] = response.data.map(
+          (rank: Attendee, index: number) => 
+            ({ cells: [ `#${index+1}`, rank.points, 
+                  rank.firstName, rank.lastName ] }))
       setAttendees(rows);
     // Receiving Questions for this Survey 
     } else if(response.name == Option.SurveyQuestions) {
-      setQuestions(response.data);
+      // Select only questions for AttendeeStep.during
+      setQuestions(response.data.filter(question => question.kind == 0));
       setLoadingQuestions(false);
     }
   }
@@ -66,7 +70,7 @@ export const SpeakerQuestions: React.FunctionComponent<SpeakerQuestionsProps> = 
     sendBackend(websocket, { name: Option.SpeakerJumpQuestion, 
       data: { speakerID: 1, surveyID: survey, 
               questionID: questions[currentQuestion].ID }});
-    setStarted(true);
+    setStep(AttendeeStep.ready);
   }
 
   const isFirstQuestion = (): boolean => currentQuestion == 0;
@@ -97,10 +101,21 @@ export const SpeakerQuestions: React.FunctionComponent<SpeakerQuestionsProps> = 
     }
   }
 
+  const finishSurvey = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    console.log(`>>> FINISH Question ID: ${questions[currentQuestion].ID} Question:${questions[currentQuestion]}`);
+    sendBackend(websocket, { name: Option.SpeakerFinishSurvey, 
+      data: { speakerID: 1, surveyID: survey, 
+              questionID: questions[currentQuestion].ID }});
+    setCurrentQuestion(0);
+    setStep(AttendeeStep.started);
+  }
+
+
   return (
     <MainPage>
-      { connected ? <PageSection variant="darker">Connected</PageSection>
-                  : <PageSection variant="dark">Disconnected</PageSection> }
+      <PageSection variant={connected ? "darker" : "dark"}>
+          {"darker" ? "Connected" : "Disconnected"}
+      </PageSection>
       <PageSection>
         <QuestionProgress currentQuestion={currentQuestion+1}
                                   total={questions.length}/>
@@ -113,21 +128,24 @@ export const SpeakerQuestions: React.FunctionComponent<SpeakerQuestionsProps> = 
         <Toolbar id="toolbar-group-types">
           <ToolbarContent>
             <ToolbarItem>
-              {!started ? <Button variant={ButtonVariant.danger} 
-                onClick={startSurvey}>Start</Button>
-                : <Button isDisabled variant={ButtonVariant.primary}>Start</Button>
-              }
+              <Button isDisabled={step != AttendeeStep.started} 
+                    variant={ButtonVariant.danger} onClick={startSurvey}>Start</Button>
             </ToolbarItem>
             <ToolbarItem variant={ToolbarItemVariant.separator}/>
             <ToolbarItem>
-              <ButtonDrive isDisabled={!started ? true : isFirstQuestion()}  
+              <ButtonDrive isDisabled={step != AttendeeStep.ready ? true : isFirstQuestion()}
                 variant={ButtonVariant.secondary}
                 text="Previous" handle={jumpPreviousQuestion}/>
             </ToolbarItem>
             <ToolbarItem>
-              <ButtonDrive isDisabled={!started ? true : isLastQuestion()}
+              <ButtonDrive isDisabled={step != AttendeeStep.ready ? true : isLastQuestion()}
                 variant={ButtonVariant.primary}
                 text="Next" handle={jumpNextQuestion}/>
+            </ToolbarItem>
+            <ToolbarItem variant={ToolbarItemVariant.separator}/>
+            <ToolbarItem>
+              <Button isDisabled={step != AttendeeStep.ready}
+                    variant={ButtonVariant.danger} onClick={finishSurvey}>Finish</Button>
             </ToolbarItem>
           </ToolbarContent>
         </Toolbar>
@@ -183,11 +201,6 @@ const Question: React.FunctionComponent<QuestionProps> = ({ question, isCurrent 
 };
 
 const ListOfUsers: React.FunctionComponent<{ attendees: (IRow | string[])[] }> = ({ attendees }) => {
-
-  // const rows = () => { 
-  //   const result = attendees.map((rank, index) => ({ cells: [ `#${index}`, rank.points, rank.firstName, rank.lastName ] }));
-  //   console.log(result);
-  // }
 
   return (
     <GridItem rowSpan={1}>

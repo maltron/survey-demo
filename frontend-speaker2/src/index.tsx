@@ -8,6 +8,8 @@ import { ListSurveys } from "@app/ListSurveys/ListSurveys";
 import { SpeakerQuestions } from '@app/Speaker/SpeakerQuestions';
 
 import { AttendeeSurvey } from "@app/Attendee/Attendee";
+// import { SpeakerContext, AttendeeContext } from "@app/Shared/Context";
+import { AttendeeSessionProvider } from "@app/Attendee/AttendeeContext";
 
 const App: React.FunctionComponent = () => {
   return (
@@ -17,8 +19,10 @@ const App: React.FunctionComponent = () => {
         <Route exact path="/main" component={ListSurveys}/>
         <Route exact path="/speaker/:survey" 
           render={({ match }) => <SpeakerQuestions survey={parseInt(match.params.survey)}/>}/>
-        <Route exact path="/attendee/:survey" 
+        <AttendeeSessionProvider>
+          <Route exact path="/attendee/:survey" 
             render={ ({ match }) => <AttendeeSurvey survey={parseInt(match.params.survey)}/>}/>
+        </AttendeeSessionProvider>
       </Switch>
     </Router>
   )

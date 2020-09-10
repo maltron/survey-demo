@@ -1,38 +1,33 @@
 import React from "react";
-import { Page, PageSection, PageSectionVariants, 
-    TextContent, Text, TextInput, TextInputTypes, TextVariants,
-    Button, ButtonVariant, 
-    Form, FormGroup, ActionGroup
+import { Page, PageSection
 } from "@patternfly/react-core";
-import { Attendee, Question, Answer, questionJSON, answeredJSON } from "@app/Shared/Model";
-import { backendURL } from "@app/Backend/Backend";
+import { Attendee, Question, AttendeeStep } from "@app/Shared/Model";
 import { useWebSocket, sendBackend, Command, Option 
 } from "@app/Backend/SocketCommunication";
-import { AttendeeDuring } from "@app/Attendee/AttendeeDuring";
-import { AttendeeEnd } from "@app/Attendee/AttendeeEnd";
 import { AttendeeQuestion } from "@app/Attendee/AttendeeShared";
 import { Wait, Status, BigTitle } from "@app/Shared/Components";
-
-enum AttendeeStep {
-    started, // Attendee started to a particular Survey
-    before, // Attendee will answer initial questions
-    getready, // Wait for Speaker to Begin on the first question
-    during, // Attendee will engage of presentation
-    end  // Attendee will answer final questions
-}
+import { AttendeeRegister } from "@app/Attendee/AttendeeRegister";
 
 export const AttendeeSurvey: React.FunctionComponent<{ survey: number }> = ({ survey }) => {
-    const [ connected, websocket ] = useWebSocket();
+    const [ connected, websocket ] = useWebSocket(); // WEBSOCKET 
     const [ errorMessage, setErrorMessage ] = React.useState<string>("");
     const [ step, setStep ] = React.useState<AttendeeStep>(AttendeeStep.started);
-    const [ attendee, setAttendee ] = React.useState<Attendee>({
+    const ready = React.useRef<boolean>(false); // Indicate the user is ready to engage
+
+    const [ registration, setRegistration ] = React.useState<Attendee>({
+        ID: 0, firstName: "", lastName: "", email: "", points: 0, survey: 0
+    })
+    // This reference is important due the nature of WebSockets, 
+    // which it doesn't trigger the render process, hence it's 
+    // impossible to get any state as a result of onmessage()
+    const attendee = React.useRef<Attendee>({
         ID: 0, firstName: "", lastName: "", email: "", points:0, survey
     })
     const [ loadingQuestions, setLoadingQuestions ] = React.useState<boolean>(true);
-    const [ currentQuestion, setCurrentQuestion ] = React.useState<number>(0);
-    const [ questions, setQuestions ] = React.useState<Array<Question>>([]);
+    const questions = React.useRef<Array<Question>>([]);
     const [ questionsBefore, setQuestionsBefore ] = React.useState<Array<Question>>([]);
-    const [ questionsAfter, setQuestionsAfter ] = React.useState<Array<Question>>([]);    
+    const [ questionsFinish, setQuestionsFinish ] = React.useState<Array<Question>>([]);    
+    const [ currentQuestion, setCurrentQuestion ] = React.useState<number>(0);
 
     React.useEffect(() => {
         // If an WebSocket communiction is established, setup a message callback
@@ -46,14 +41,43 @@ export const AttendeeSurvey: React.FunctionComponent<{ survey: number }> = ({ su
     
     }, [connected]);
 
-    // WEBSOCKET: Receveing Messages from Backend
+    // WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET 
+    //    WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET 
     const backendMessage = (event: MessageEvent) => {
         var response: Command = JSON.parse(event.data);
+        // console.log(`>>> backend Name: ${response.name} Data: ${event.data} currentQuestion: ${currentQuestion} Step: ${step}`);
         // Receving Questions 
         if(response.name === Option.SurveyQuestions) {
-            setQuestions(response.data);
+            questions.current = response.data;
             setLoadingQuestions(false);
-        }                
+        // Capture AttendeeRegistered in order fetch Attendee.ID
+        } else if(response.name === Option.AttendeeRegistered) {
+            // console.log(`>>> Option.AttendeeRegistered: ${response.data}`);
+            console.log(response.data);
+            // AttendeeRegistered Data: {"name":"AttendeeRegistered","data":{"surveyID":0,"attendee":{"id":16,"firstName":"a","lastName":"a","email":"a","points":0,"survey":1}}}
+            const attendeeRegistered: Attendee = response.data.attendee;
+
+            // We're getting notifications from every single Attendee
+            // We need to update Attendee.ID and it's only true if
+            // firstName, lastName and email matches
+            if(attendee.current.firstName == attendeeRegistered.firstName &&
+                attendee.current.lastName == attendeeRegistered.lastName &&
+                    attendee.current.email == attendeeRegistered.email) {
+                attendee.current.ID = parseInt(response.data.attendee.id);
+            }
+
+        // Finish this Survey
+        } else if(response.name === Option.SpeakerFinishSurvey) {
+            ready.current = false; // Attendee is no longer will engage in Questions
+            setCurrentQuestion(0);
+            setStep(AttendeeStep.finish);
+        // Initiate main Questions 
+        } else if(ready.current && response.name === Option.SpeakerJumpQuestion) {
+            console.log(`>>> backendMessage: ${response.data.questionID} Questions Length: ${questions.current.length}`);
+            setCurrentQuestion(questions.current.findIndex(
+                question => question.ID == parseInt(response.data.questionID)));
+            setStep(AttendeeStep.ready);
+        }
     }
 
     React.useEffect(() => {
@@ -61,68 +85,92 @@ export const AttendeeSurvey: React.FunctionComponent<{ survey: number }> = ({ su
         // variables to be easily handled
         if(!loadingQuestions) {
             console.log("React.useEffect loading. Loading Questions");
-            setQuestionsBefore(questions.filter(question => question.kind == -1));
-            setQuestionsAfter(questions.filter(question => question.kind == 1));
+            setQuestionsBefore(questions.current.filter(question => question.kind == -1));
+            setQuestionsFinish(questions.current.filter(question => question.kind == 1));
         }
     }, [loadingQuestions]);
 
     const handleStart = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+        // Update SurveyID into the Registration
+        setRegistration({ ...registration, survey });
+
+        // The information of the existing Attendee is kept into attendee.current
+        // This is needed due the nature of WebSockets which never triggers
+        // the rendering phase
+        attendee.current = registration; 
+
         sendBackend(websocket, { name: Option.AttendeeRegistration, 
-            data: { survey, attendee }});
+            data: { surveyID: survey, attendee: registration }});
         setStep(AttendeeStep.before);
-        // fetch(`http://${backendURL()}/attendee`, {
-        //     method: "PUT", headers: { "Content-type": "application/json" },
-        //     body: JSON.stringify(attendee)
-        // }).then(response => {
-        //     if(response.status == 201) {
-        //         response.json().then(data => {
-        //             setErrorMessage("");
-        //             setAttendee(data);
-        //             const { ID } = data; 
-        //             sendBackend(websocket, 
-        //                 { option: Option.AttendeeRegister, data: { surveyID: survey, attendeeID: ID } });
-        //             setStep(AttendeeStep.before);
-        //         });
-        //     } else {
-        //         setErrorMessage("Server Error");
-        //     }
-        // });
     }
 
-    const handleBeforeQuestion = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+    const handleBeforeFinishQuestion = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
         const { id } = event.currentTarget;
-        console.log(`Answer ID: ${id} Current: ${currentQuestion} Length: ${questionsBefore.length}`);
-        // Record the answer 
-        fetch(`http://${backendURL()}/survey/answer`, 
-        { method: "POST", headers: {"Content-type":"application/json"},
-            body: answeredJSON(survey, attendee.ID, questionsBefore[currentQuestion], parseInt(id))})
+        console.log(`>>> handleBeforeFinishQuestion Answer ID: ${id} Current: ${currentQuestion} Length: ${questionsBefore.length}`);
+        console.log(attendee.current);
 
-        if(currentQuestion < questionsBefore.length-1) {
-            setCurrentQuestion(prevQuestion => prevQuestion+1);
-        } else {
-            // By the end of begin, jump to the next step
-            setStep(AttendeeStep.getready);
+        if(step == AttendeeStep.before) {
+            // Record the answer 
+            sendBackend(websocket, { name: Option.AttendeeAnswered, 
+                data: { ID:0, surveyID: survey, 
+                            attendeeID: attendee.current.ID,
+                            questionID: questionsBefore[currentQuestion].ID, 
+                                                    answerID: parseInt(id) }})
+            if(currentQuestion < questionsBefore.length-1) {
+                setCurrentQuestion(prevQuestion => prevQuestion+1);
+            } else {
+                // By the end of begin, jump to the next step
+                setStep(AttendeeStep.getready);
+                ready.current = true; // Attendee is Ready to accept Questions from Speaker
+            }
+        } else if(step == AttendeeStep.finish) {
+            // Record the answer 
+            sendBackend(websocket, { name: Option.AttendeeAnswered, 
+                data: { ID:0, surveyID: survey, attendeeID: attendee.current.ID, 
+                            questionID: questionsFinish[currentQuestion].ID, 
+                                                    answerID: parseInt(id) }})
+            if(currentQuestion < questionsFinish.length-1) {
+                setCurrentQuestion(prevQuestion => prevQuestion+1);
+            } else {
+                // By the end of begin, jump to the next step
+                setStep(AttendeeStep.end);
+            }
         }
     }
 
+    const handleReadyQuestion = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+
+    }
+
     const currentStep = (): JSX.Element => {
+        console.log(`>>> currentStep: Step ${step} currentQuestion ${currentQuestion}`);
         switch(step) {
             // Flow 1/4: BEFORE
             case AttendeeStep.before: 
                 return <AttendeeQuestion 
-                    handleQuestion={handleBeforeQuestion}
+                    handleQuestion={handleBeforeFinishQuestion}
                     question={questionsBefore[currentQuestion]}/>
             // Flow 2/4: GET READY
             case AttendeeStep.getready:
                 return <AttendeeGetReady/>            
-            // Flow 3/4: DURING
-            case AttendeeStep.during: return <AttendeeDuring/>
-            // // Flow 4/4: END
-            case AttendeeStep.end: return <AttendeeEnd/>
+            // Flow 3/4: READY
+            case AttendeeStep.ready: 
+                // From now on, select a question based on its Question.ID
+                // const questionSelected: Question = questions.find(
+                //         question => question.ID == attendeeState.currentQuestion) as Question;
+                return <AttendeeQuestion handleQuestion={handleReadyQuestion}
+                        question={questions.current[currentQuestion]}/>
+            // // Flow 4/4: FINISH
+            case AttendeeStep.finish: 
+                return <AttendeeQuestion handleQuestion={handleBeforeFinishQuestion}
+                        question={questionsFinish[currentQuestion]}/>
+            // Flow 5/5: THE END
+            case AttendeeStep.end:
+                return <AttendeeEnd/>
         }
 
-        return <AttendeeRegister register={[ attendee, setAttendee, handleStart ]} 
-                    errorMessage={errorMessage}/>
+        return <AttendeeRegister user={{ registration, setRegistration }} 
+                        handleStart={handleStart} errorMessage={errorMessage}/>
     }
 
     return (
@@ -144,86 +192,13 @@ const AttendeeGetReady = () => {
     )
 }
 
-interface AttendeeRegisterProps {
-    register: [ Attendee, (attendee: Attendee) => void, (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void ];
-    errorMessage: string;
-}
-
-const AttendeeRegister: React.FunctionComponent<AttendeeRegisterProps> = ({ register, errorMessage }) => {
-    const [ ready, setReady ] = React.useState<boolean>(false);
-    const [ attendee, setAttendee, handleStart ] = register;     
-
-    const referenceFirstName = React.useRef<HTMLInputElement>(null);
-    const refereceLastName = React.useRef<HTMLInputElement>(null);
-    const referenceEmail = React.useRef<HTMLInputElement>(null);
-
-    React.useEffect(() => {
-        // For each render, check if it's allowed to start
-        setReady(isValidFirstName() && isValidLastName() && isValidEmail);
-    })
-
-    React.useEffect(() => {
-        // Get focus into the First Name on the first render
-        referenceFirstName.current?.focus();
-    }, []);
-
-    const isValidFirstName = (): boolean => {
-        const component = referenceFirstName.current as HTMLInputElement;
-        return component.value.length > 0 && component.value.length < 51; 
-    }
-
-    const isValidLastName = (): boolean => {
-        const component = refereceLastName.current as HTMLInputElement;
-        return component.value.length > 0 && component.value.length < 51; 
-    }
-
-    const isValidEmail = (): boolean => {
-        const component = referenceEmail.current as HTMLInputElement;
-        return component.value.length > 0 && component.value.length < 151; 
-    }
-
-    const handleLogin = (value: string, event: React.FormEvent<HTMLInputElement>) => {
-        const { name } = event.currentTarget;
-        setAttendee({...attendee, [name]: value });
-    }
-
+const AttendeeEnd = () => {
     return (
         <React.Fragment>
-            <Status message={errorMessage}/>
-            <PageSection variant={PageSectionVariants.default}>
-                <TextContent>
-                    <Text component={TextVariants.h1}>Capitals of the World</Text>
-                </TextContent>
-            </PageSection>
+            <Status message=" "/>
             <PageSection>
-                <Form>
-                    <FormGroup fieldId="field_firstname" 
-                        label="First Name" isRequired>
-                            <TextInput id="text_firstname" name="firstName" 
-                                type={TextInputTypes.text} ref={referenceFirstName}
-                                value={attendee.firstName}
-                                onChange={handleLogin}/>
-                    </FormGroup>
-                    <FormGroup fieldId="field_lastname" 
-                        label="Last Name" isRequired>
-                            <TextInput id="text_lastname" name="lastName"
-                                type={TextInputTypes.text} ref={refereceLastName}
-                                value={attendee.lastName}
-                                onChange={handleLogin}/>
-                    </FormGroup>
-                    <FormGroup fieldId="field_email" 
-                        label="Email" isRequired>
-                            <TextInput id="text_email" name="email"
-                                type={TextInputTypes.email} ref={referenceEmail}
-                                value={attendee.email}
-                                onChange={handleLogin}/>
-                    </FormGroup>
-                    <ActionGroup>
-                        <Button variant={ButtonVariant.primary} 
-                            isDisabled={!ready} onClick={handleStart}>Start</Button>
-                    </ActionGroup>
-                </Form>
+                <BigTitle message="Thank you"/>
             </PageSection>
         </React.Fragment>
     )
-} 
+}

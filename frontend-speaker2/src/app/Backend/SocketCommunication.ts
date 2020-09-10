@@ -5,9 +5,12 @@ export enum Option {
     SpeakerStartSurvey = "SpeakerStartSurvey",
     SpeakerJumpQuestion = "SpeakerJumpQuestion",
     SurveyQuestions = "SurveyQuestions",
+    SpeakerFinishSurvey = "SpeakerFinishSurvey",
     Attendees = "Attendees",
     AttendeeStarted = "AttendeeStarted",
-    AttendeeRegistration = "AttendeeRegistration"
+    AttendeeRegistration = "AttendeeRegistration",
+    AttendeeRegistered = "AttendeeRegistered",
+    AttendeeAnswered = "AttendeeAnswered"
 }
 
 export interface Command {
