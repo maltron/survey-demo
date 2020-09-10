@@ -92,8 +92,8 @@ func main() {
 	router.HandleFunc("/speaker", model.GetSpeakers).Methods("GET")
 
 	// Database Connection
-	var connection *database.Connection
-	if connection, err := database.NewConnection(); err != nil {
+	connection, err := database.NewConnection()
+	if err != nil {
 		log.Fatalf("### Database Connection Failed: %v\n", err)
 	}
 	
@@ -104,6 +104,7 @@ func main() {
 	// WebSocket Handlers
 	websocketRouter.Handle("SpeakerStartSurvey", survey.SpeakerStartSurvey)
 	websocketRouter.Handle("SpeakerJumpQuestion", survey.SpeakerJumpQuestion)
+	websocketRouter.Handle("SpeakerFinishSurvey", survey.SpeakerFinishSurvey)
 	websocketRouter.Handle("AttendeeStarted", survey.AttendeeStarted) // AttendeeStep.started
 	websocketRouter.Handle("AttendeeRegistration", survey.AttendeeRegistration)
 	websocketRouter.Handle("AttendeeAnswered", survey.AttendeeAnswered)

@@ -3,14 +3,13 @@ package database
 import (
 	"fmt"
 	"log"
-	"database/sql"
 	"github.com/maltron/survey-demo/backend/model"
 )
 
 // GetSurveyQuestions Returns a list of Questions for a specific Survey
-func GetSurveyQuestions(database *sql.DB, surveyID int) ([]model.Question, error) {
+func GetSurveyQuestions(database *Connection, surveyID int) ([]model.Question, error) {
 	query := fmt.Sprintf("select question.ID as questionID, question.question, question.timer, question.points, answer.ID as answerID, answer.answer, answer.is_correct, qa.kind from survey survey join survey_has_questions sq on survey.ID = sq.surveyID join survey_question question on question.ID = sq.questionID join survey_question_has_answers qa on qa.questionID = question.ID join survey_answer answer on qa.answerID = answer.ID where survey.ID = %d order by qa.kind, question.ID", surveyID)
-	rows, err := database.Query(query)
+	rows, err := database.connection.Query(query)
 	defer rows.Close()
 
 	if err != nil {
