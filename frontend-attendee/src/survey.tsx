@@ -105,7 +105,7 @@ const Question: React.FunctionComponent<QuestionProps> = ({ question, timer, poi
                         : <Button isDisabled key={answer.id} id={answer.id} variant="tertiary" 
                         >{index+1}. {answer.answer}</Button>
                     : null
-                    }
+                    } 
                 </p>
                 )
             } 

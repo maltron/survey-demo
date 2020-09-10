@@ -15,7 +15,7 @@ const App: React.FunctionComponent = () => (
       <Switch>
         <Route exact path="/" component={Register} />
         <Route exact path="/echo" component={Echo} />
-        <Route exact path="/survey" component={
+        <Route exact path="/survey" component={() =>
             <Question
               question="What is the capital of China ?"
               timer={10}
