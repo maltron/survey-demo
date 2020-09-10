@@ -1,6 +1,5 @@
 import React from "react";
-import { LoginPage, ListVariant, ListItem, 
-         LoginFooterItem, 
+import { LoginPage, ListVariant, 
          LoginForm 
 } from "@patternfly/react-core";
 import surveyDemoImage from "./images/survey-demo.svg";
@@ -9,24 +8,18 @@ import { ExclamationCircleIcon } from "@patternfly/react-icons";
 export const Login: React.FunctionComponent = () => {
     const [ login, setLogin ] = React.useState({
         showHelperText: false, 
-        username: "", isValidUsername: false, 
-        password: "", isValidPassword: false, 
-        isRememberMeChecked: false
+        username: "", isValidUsername: true, 
+        password: "", isValidPassword: true
     })
 
-    const listItem = (
-        <React.Fragment>
-            <ListItem>
-                <LoginFooterItem>Terms of Use</LoginFooterItem>
-            </ListItem>
-            <ListItem>
-                <LoginFooterItem>Help</LoginFooterItem>
-            </ListItem>
-            <ListItem>
-                <LoginFooterItem>Privacy Policy</LoginFooterItem>
-            </ListItem>
-        </React.Fragment>
-    )
+    const handleUsernameAndPassword = (value: string, event: React.ChangeEvent<HTMLInputElement>) => {
+        const { name } = event.currentTarget;
+        if(name === "pf-login-username-id") {
+            setLogin({...login, username: value });
+        } else if(name === "pf-login-password-id") {
+            setLogin({...login, password: value });
+        }
+    }
 
     const backgroundImages = {
         lg: './images/pfbg_1200.jpg',
@@ -51,11 +44,11 @@ export const Login: React.FunctionComponent = () => {
             usernameLabel="Username"
             usernameValue={login.username}
             isValidUsername={login.isValidUsername}
+            onChangeUsername={handleUsernameAndPassword}
             passwordLabel="Password"
             passwordValue={login.password}
             isValidPassword={login.isValidPassword}
-            rememberMeLabel="Keep me logged in for 30 days"
-            isRememberMeChecked={login.isRememberMeChecked}
+            onChangePassword={handleUsernameAndPassword}
         />
     )
 
@@ -64,10 +57,7 @@ export const Login: React.FunctionComponent = () => {
             footerListVariants={ListVariant.inline}
             brandImgSrc={surveyDemoImage} brandImgAlt="Survey Demo"
             backgroundImgSrc={backgroundImages} backgroundImgAlt="images"
-            footerListItems={listItem}
-            textContent="This is a placeholder text only. Use this area to place any information or introductory message about your application that may be relevant to users"
-            loginTitle="Log into your account"
-            logSubtitle="Please use your single sign-on LDAP credentials"   
+            loginTitle="Speaker Log In"
         >
             {loginForm}
         </LoginPage>
