@@ -1,6 +1,6 @@
 import React from "react";
 import { Survey, Attendee, Answer, Question } from "@app/Shared/Model";
-import { backendURL } from "@app/Backend/Backend";
+import { surveyServer } from "@app/Backend/Backend";
 
 // List of all existing Surveys
 export const useAPISurveys = (): [ boolean, Array<Survey> ] => {
@@ -8,7 +8,7 @@ export const useAPISurveys = (): [ boolean, Array<Survey> ] => {
     const [ loading, setLoading ] = React.useState<boolean>(true);
 
     React.useEffect(() => {
-        fetch(`http://${backendURL()}/survey`, {
+        fetch(`http://${surveyServer()}/survey`, {
             method: "GET", headers: { "Content-type": "application/json" }
         }).then(response => response.json())
         .then(data => {
@@ -25,7 +25,7 @@ export const useAPIAttendees = (): [ boolean,  Array<Attendee> ] => {
     const [ loading, setLoading ] = React.useState<boolean>(true);
 
     React.useEffect(() => {
-        fetch(`http://${backendURL()}/user`, {
+        fetch(`http://${surveyServer()}/user`, {
             method: "GET", headers: { "Content-type": "application/json" }
         }).then(response => response.json())
         .then(data => {
@@ -57,7 +57,7 @@ export const useAPIQuestions = (surveyID: number): [ boolean, Array<Question> ] 
     const [ loading, setLoading ] = React.useState<boolean>(true);
 
     React.useEffect(() => {
-        fetch(`http://${backendURL()}/survey/questions/${surveyID}`, {
+        fetch(`http://${surveyServer()}/survey/questions/${surveyID}`, {
             method: "GET", headers: { "Content-type" : "application/json" }
         }).then(response => response.json()) 
         .then(data =>  {

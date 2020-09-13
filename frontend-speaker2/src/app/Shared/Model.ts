@@ -1,3 +1,6 @@
+import { ProgressVariant } from "@patternfly/react-core";
+import { IRow } from '@patternfly/react-table';
+
 // Description of a Survey
 export interface Survey {
     ID: number; 
@@ -79,4 +82,23 @@ export enum AttendeeStep {
     finish,  // Attendee will answer final questions
     end  // Attendee The End
 }
+
+export enum AnswerType { 
+    answering, not_answered, correct, incorrect 
+}
+
+export interface AnswerState {
+    answerID: number; 
+    type: AnswerType; 
+    variant: ProgressVariant | undefined;
+}
+
+export const turnAttendeeIntoRows = (attendees: Array<Attendee>): (IRow | string[])[] => {
+    return attendees.map(
+      (rank: Attendee, index: number) => 
+        ({ cells: [ `#${index+1}`, rank.points, 
+              rank.firstName, rank.lastName ] }))
+  }
+
+
 

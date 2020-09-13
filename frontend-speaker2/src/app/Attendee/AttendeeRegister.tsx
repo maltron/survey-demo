@@ -7,16 +7,19 @@ import {
 } from "@patternfly/react-core";
 import { Attendee } from "@app/Shared/Model";
 import { Status } from "@app/Shared/Components";
+import { AttendeeQuestionState } from "@app/Attendee/AttendeeShared";
 
 interface AttendeeRegisterProps {
-    user: { registration: Attendee, setRegistration: (attendee: Attendee) => void }
+    attendeeQuestionState: [ AttendeeQuestionState, React.Dispatch<React.SetStateAction<AttendeeQuestionState>> ];
     handleStart: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
     errorMessage: string;
 }
 
-export const AttendeeRegister: React.FunctionComponent<AttendeeRegisterProps> = ({ user, handleStart, errorMessage }) => {
+export const AttendeeRegister: React.FunctionComponent<AttendeeRegisterProps> = 
+            ({ attendeeQuestionState, handleStart, errorMessage }) => {
     const [ ready, setReady ] = React.useState<boolean>(false);
-    const { registration, setRegistration } = user;
+    // const { registration, setRegistration } = user;
+    const [ state, setState ] = attendeeQuestionState;
 
     const referenceFirstName = React.useRef<HTMLInputElement>(null);
     const refereceLastName = React.useRef<HTMLInputElement>(null);
@@ -50,7 +53,8 @@ export const AttendeeRegister: React.FunctionComponent<AttendeeRegisterProps> = 
     const handleLogin = (value: string, event: React.FormEvent<HTMLInputElement>) => {
         const { name } = event.currentTarget;
         // attendee.current = {...attendee.current, [name]: value };
-        setRegistration({ ...registration, [name]: value });
+        // setRegistration({ ...registration, [name]: value });
+        setState({ ...state, registration: { ...state.registration, [name]: value }});
     }
 
     return (
@@ -67,26 +71,26 @@ export const AttendeeRegister: React.FunctionComponent<AttendeeRegisterProps> = 
                         label="First Name" isRequired>
                             <TextInput id="text_firstname" name="firstName" 
                                 type={TextInputTypes.text} ref={referenceFirstName}
-                                value={registration.firstName}
+                                value={state.registration.firstName}
                                 onChange={handleLogin}/>
                     </FormGroup>
                     <FormGroup fieldId="field_lastname" 
                         label="Last Name" isRequired>
                             <TextInput id="text_lastname" name="lastName"
                                 type={TextInputTypes.text} ref={refereceLastName}
-                                value={registration.lastName}
+                                value={state.registration.lastName}
                                 onChange={handleLogin}/>
                     </FormGroup>
                     <FormGroup fieldId="field_email" 
                         label="Email" isRequired>
                             <TextInput id="text_email" name="email"
                                 type={TextInputTypes.email} ref={referenceEmail}
-                                value={registration.email}
+                                value={state.registration.email}
                                 onChange={handleLogin}/>
                     </FormGroup>
                     <ActionGroup>
                         <Button variant={ButtonVariant.primary} 
-                            isDisabled={!ready} onClick={handleStart}>Start</Button>
+                            isDisabled={!ready && !state.loadingQuestions} onClick={handleStart}>Start</Button>
                     </ActionGroup>
                 </Form>
             </PageSection>

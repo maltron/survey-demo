@@ -1,4 +1,4 @@
 // URL Address to the Server
-export const backendURL = (): string => {
-    return process.env.BACKEND_API ? process.env.BACKEND_API : "localhost:8080";
+export const surveyServer = (): string => {
+    return process.env.SURVEY_SERVER ? process.env.SURVEY_SERVER : "localhost:8080";
 }

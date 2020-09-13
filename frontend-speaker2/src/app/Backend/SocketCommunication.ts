@@ -1,16 +1,17 @@
 import React from "react";
-import { backendURL } from "@app/Backend/Backend";
+import { surveyServer } from "@app/Backend/Backend";
 
 export enum Option {
     SpeakerStartSurvey = "SpeakerStartSurvey",
     SpeakerJumpQuestion = "SpeakerJumpQuestion",
     SurveyQuestions = "SurveyQuestions",
     SpeakerFinishSurvey = "SpeakerFinishSurvey",
-    Attendees = "Attendees",
     AttendeeStarted = "AttendeeStarted",
     AttendeeRegistration = "AttendeeRegistration",
     AttendeeRegistered = "AttendeeRegistered",
-    AttendeeAnswered = "AttendeeAnswered"
+    AttendeeAnswered = "AttendeeAnswered",
+    AttendeeScored = "AttendeeScored",
+    AttendeesForSurvey = "AttendeesForSurvey"
 }
 
 export interface Command {
@@ -24,7 +25,7 @@ export interface SpeakerForSurvey {
     questionID: number;
 }
 
-export const sendBackend = (webSocket: WebSocket, command: Command) => {
+export const sendWebSocket = (webSocket: WebSocket, command: Command) => {
     if(webSocket.readyState === WebSocket.OPEN)
         webSocket.send(JSON.stringify(command));
     else console.log("### WARNING: WEB SOCKET NOT CONNECTED");
@@ -35,8 +36,9 @@ export const useWebSocket = (): [ boolean, WebSocket ] => {
     const webSocket = React.useRef<WebSocket>();
 
     React.useEffect(() => {
-        webSocket.current = new WebSocket(`ws://${backendURL()}/ws`);
+        webSocket.current = new WebSocket(`ws://${surveyServer()}/ws`);
         webSocket.current.onopen = (event: Event) => {
+            console.log(">>> WEBSOCKET ----> ON OPEN ON OPEN ON OPEN ON OPEN ON OPEN ON OPEN ON OPEN");
             console.log(`>>> useWebSocket React.useEffect() onopen() ${event}`);
             setConnected(true);
         }
@@ -45,14 +47,17 @@ export const useWebSocket = (): [ boolean, WebSocket ] => {
         //     console.log(`>>> onmessage(): ${event.data} ${event.lastEventId} ${event.origin} ${event.ports} ${event.source}`);
         // }      
         webSocket.current.onclose = (event: CloseEvent) => {
+            console.log(">>> WEBSOCKET ----> ON CLOSE ON CLOSE ON CLOSE ON CLOSE ON CLOSE ON CLOSE ");
             console.log(`>>> useWebSocket React.useEffect() onclose() code: ${event.code} reason: ${event.reason} wasClean: ${event.wasClean}`);
             setConnected(false);
         }
         webSocket.current.onerror = (event: Event) => {
+            console.log(">>> WEBSOCKET ----> ON ERROR ON ERROR ON ERROR ON ERROR ON ERROR ON ERROR");
             console.log(`>>> useWebSocket React.useEffect() onerror() ${event}`);
         }
         
         return () => {
+            console.log(">>> WEBSOCKET ----> CLOSING CLOSING CLOSING CLOSING CLOSING CLOSING CLOSING ");           
             console.log(">>> useWebSocket React.useEffect() Closing WebSocket");
             webSocket.current?.close();
         }

@@ -11,8 +11,8 @@ import {
 import { Table, TableHeader, TableBody, IRow } from '@patternfly/react-table';
 // import { FilterIcon, TableIcon } from '@patternfly/react-icons';
 import { MainPage } from '@app/Shared/MainPage';
-import { Question, Attendee, AttendeeStep } from "@app/Shared/Model"
-import { useWebSocket, sendBackend, Command, Option 
+import { Question, Attendee, AttendeeStep, turnAttendeeIntoRows } from "@app/Shared/Model"
+import { useWebSocket, sendWebSocket, Command, Option 
 } from "@app/Backend/SocketCommunication";
 import { Wait } from "@app/Shared/Components";
 
@@ -25,100 +25,153 @@ interface QuestionProps {
   isCurrent?: boolean
 }
 
+interface SpeakerSurveyState {
+  step: AttendeeStep; 
+  loadingQuestions: boolean; 
+  currentQuestion: number; 
+}
+
 export const SpeakerQuestions: React.FunctionComponent<SpeakerQuestionsProps> = ({ survey }) => {
-  const [ step, setStep ] = React.useState<AttendeeStep>(AttendeeStep.started);
   const [ connected, websocket ] = useWebSocket();
-  const [ loadingQuestions, setLoadingQuestions ] = React.useState<boolean>(true);
-  const [ questions, setQuestions ] = React.useState<Array<Question>>([]);
-  const [ currentQuestion, setCurrentQuestion ] = React.useState<number>(0);
-  const [ attendees, setAttendees ] = React.useState<(IRow | string[])[]>([]);
+  const [ state, setState ] = React.useState<SpeakerSurveyState>({
+    step: AttendeeStep.started,
+    loadingQuestions: true, 
+    currentQuestion: 0
+  });
+  const questions = React.useRef<Array<Question>>([]);
+  const [ attendees, setAttendees ] = React.useState<Array<Attendee>>([]);
+  // const [ step, setStep ] = React.useState<AttendeeStep>(AttendeeStep.started);
+  // const [ loadingQuestions, setLoadingQuestions ] = React.useState<boolean>(true);
+  // const [ questions, setQuestions ] = React.useState<Array<Question>>([]);
+  // const [ currentQuestion, setCurrentQuestion ] = React.useState<number>(0);
+  // const [ attendees, setAttendees ] = React.useState<(IRow | string[])[]>([]);
 
   React.useEffect(() => {
     console.log(">>> DriveQuestions useEffect()");
     if(connected) {
       console.log(">>> DriveQuestions useEffect() connected");
-      websocket.onmessage = backendMessage;
+      websocket.onmessage = websocketMessage;
       // Backend: Start a new Session
       // e.g. { speakerID: 1, surveyID: 2 }
-      sendBackend(websocket, { name: Option.SpeakerStartSurvey, 
+      sendWebSocket(websocket, { name: Option.SpeakerStartSurvey, 
         data: { speakerID: 1, surveyID: survey }})
+
+      sendWebSocket(websocket, { name: Option.AttendeesForSurvey,
+        data: { surveyID: survey }});
       // websocket.send(JSON.stringify({ survey: survey, action: "START" }));
     }
   }, [connected]);
 
-  // WEBSOCKET: Receveing Messages from Backend
-  const backendMessage = (event: MessageEvent) => {
-    // console.log(">>> backedMessage: ", event.data);
+  // WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET 
+  //    WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET WEBSOCKET 
+  const websocketMessage = (event: MessageEvent) => {
+    console.log(">>> websocketMessage: ", event.data);
+
     var response: Command = JSON.parse(event.data); 
+    // Refuse anything not related to this Survey 
+    if(survey != parseInt(response.data.surveyID)) return;
+
     // Receiving Attendees Registration
-    if(response.name === Option.Attendees) {
-      var rows: (IRow | string[])[] = response.data.map(
-          (rank: Attendee, index: number) => 
-            ({ cells: [ `#${index+1}`, rank.points, 
-                  rank.firstName, rank.lastName ] }))
-      setAttendees(rows);
+    if(response.name === Option.AttendeeRegistered || 
+        response.name === Option.AttendeeScored) {
+      setAttendees(response.data.attendees as Array<Attendee>);
+      // setState({ ...state, attendees: response.data });
+      // var rows: (IRow | string[])[] = response.data.map(
+      //     (rank: Attendee, index: number) => 
+      //       ({ cells: [ `#${index+1}`, rank.points, 
+      //             rank.firstName, rank.lastName ] }))
+      // setAttendees(rows);
     // Receiving Questions for this Survey 
     } else if(response.name == Option.SurveyQuestions) {
-      // Select only questions for AttendeeStep.during
-      setQuestions(response.data.filter(question => question.kind == 0));
-      setLoadingQuestions(false);
+      questions.current = response.data.questions.filter(question => question.kind == 0);
+      setState({ ...state, loadingQuestions: false });
+      // setState({ ...state, loadingQuestions: false, questions });
+      // // Select only questions for AttendeeStep.during
+      // setQuestions(response.data.questions.filter(question => question.kind == 0));
+      // setLoadingQuestions(false);
+    // A particular Attendee got the answer right
+    // Source: Option.AttendeeScored
     }
   }
 
+  const previousQuestion = (): Question => questions.current[state.currentQuestion-1];
+  const currentQuestion = (): Question => questions.current[state.currentQuestion];
+  const nextQuestion = (): Question => questions.current[state.currentQuestion+1];  
+
   const startSurvey = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    console.log(`>>> STARTED Question ID: ${questions[currentQuestion].ID} Question:${questions[currentQuestion]}`);
-    sendBackend(websocket, { name: Option.SpeakerJumpQuestion, 
-      data: { speakerID: 1, surveyID: survey, 
-              questionID: questions[currentQuestion].ID }});
-    setStep(AttendeeStep.ready);
+    const question: Question = currentQuestion();
+    console.log(`>>> STARTED Question ID: ${question.ID} Question:${question}`);
+    sendWebSocket(websocket, { name: Option.SpeakerJumpQuestion, 
+      data: { speakerID: survey, surveyID: survey, 
+              questionID: question.ID }});
+    setState({ ...state, step: AttendeeStep.ready });
+    // setStep(AttendeeStep.ready);
   }
 
-  const isFirstQuestion = (): boolean => currentQuestion == 0;
+  const isFirstQuestion = (): boolean => state.currentQuestion == 0;
 
   const jumpPreviousQuestion = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     if(!isFirstQuestion()) {
-      setCurrentQuestion(prevQuestion => { 
-        console.log(`>>> Previous Question ID: ${questions[prevQuestion-1].ID} Question:${questions[prevQuestion]}`);
-        sendBackend(websocket, { name: Option.SpeakerJumpQuestion, 
+      setState(prevState => {
+        console.log(`>>> Previous Question ID: ${questions.current[prevState.currentQuestion-1].ID} Question:${questions.current[state.currentQuestion]}`);
+        sendWebSocket(websocket, { name: Option.SpeakerJumpQuestion, 
           data: { speakerID: 1, surveyID: survey, 
-                  questionID: questions[prevQuestion-1].ID }});
-        return prevQuestion-1;
-      });
+                  questionID: questions.current[prevState.currentQuestion-1].ID }});
+        return { ...state, currentQuestion: prevState.currentQuestion -1 };
+      })
+      // setCurrentQuestion(prevQuestion => { 
+      //   console.log(`>>> Previous Question ID: ${questions[prevQuestion-1].ID} Question:${questions[prevQuestion]}`);
+      //   sendBackend(websocket, { name: Option.SpeakerJumpQuestion, 
+      //     data: { speakerID: 1, surveyID: survey, 
+      //             questionID: questions[prevQuestion-1].ID }});
+      //   return prevQuestion-1;
+      // });
     }
   }
 
-  const isLastQuestion = (): boolean => loadingQuestions ? true : currentQuestion == questions.length-1;
+  const isLastQuestion = (): boolean => state.loadingQuestions ? true : state.currentQuestion == questions.current.length-1;
 
   const jumpNextQuestion = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     if(!isLastQuestion()) {
-          setCurrentQuestion(prevQuestion => { 
-            console.log(`>>> Next Question ID: ${questions[prevQuestion+1].ID} Question:${questions[prevQuestion]}`);
-            sendBackend(websocket, { name: Option.SpeakerJumpQuestion, 
-              data: { speakerID: 1, surveyID: survey, 
-                      questionID: questions[prevQuestion+1].ID }});
-              return prevQuestion+1;
-        });
+      setState(prevState => {
+        console.log(`>>> [1] Next Question ID: ${questions.current[prevState.currentQuestion+1].ID} Question:${questions.current[state.currentQuestion]}`);
+        console.log(questions.current[prevState.currentQuestion+1]);
+        sendWebSocket(websocket, { name: Option.SpeakerJumpQuestion, 
+          data: { speakerID: survey, surveyID: survey, 
+                  questionID: questions.current[prevState.currentQuestion+1].ID }});
+        console.log(">>> [2] Next Question: Returning State");
+        return { ...state, currentQuestion: prevState.currentQuestion +1 };
+      })
+        //   setCurrentQuestion(prevQuestion => { 
+        //     console.log(`>>> Next Question ID: ${questions[prevQuestion+1].ID} Question:${questions[prevQuestion]}`);
+        //     sendBackend(websocket, { name: Option.SpeakerJumpQuestion, 
+        //       data: { speakerID: 1, surveyID: survey, 
+        //               questionID: questions[prevQuestion+1].ID }});
+        //       return prevQuestion+1;
+        // });
     }
   }
 
   const finishSurvey = (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
-    console.log(`>>> FINISH Question ID: ${questions[currentQuestion].ID} Question:${questions[currentQuestion]}`);
-    sendBackend(websocket, { name: Option.SpeakerFinishSurvey, 
+    const question: Question = currentQuestion();
+    console.log(`>>> FINISH Question ID: ${question.ID} Question:${question}`);
+    sendWebSocket(websocket, { name: Option.SpeakerFinishSurvey, 
       data: { speakerID: 1, surveyID: survey, 
-              questionID: questions[currentQuestion].ID }});
-    setCurrentQuestion(0);
-    setStep(AttendeeStep.started);
+              questionID: question.ID }});
+    setState({ ...state, currentQuestion: 0, step: AttendeeStep.started });
+    // setCurrentQuestion(0);
+    // setStep(AttendeeStep.started);
   }
 
 
   return (
     <MainPage>
       <PageSection variant={connected ? "darker" : "dark"}>
-          {"darker" ? "Connected" : "Disconnected"}
+          {connected ? "Connected" : "Disconnected"}
       </PageSection>
       <PageSection>
-        <QuestionProgress currentQuestion={currentQuestion+1}
-                                  total={questions.length}/>
+        <QuestionProgress currentQuestion={state.currentQuestion+1}
+                                  total={questions.current.length}/>
       </PageSection>
       <PageSection variant="light">
         <TextContent>
@@ -128,23 +181,23 @@ export const SpeakerQuestions: React.FunctionComponent<SpeakerQuestionsProps> = 
         <Toolbar id="toolbar-group-types">
           <ToolbarContent>
             <ToolbarItem>
-              <Button isDisabled={step != AttendeeStep.started} 
+              <Button isDisabled={state.step != AttendeeStep.started} 
                     variant={ButtonVariant.danger} onClick={startSurvey}>Start</Button>
             </ToolbarItem>
             <ToolbarItem variant={ToolbarItemVariant.separator}/>
             <ToolbarItem>
-              <ButtonDrive isDisabled={step != AttendeeStep.ready ? true : isFirstQuestion()}
+              <ButtonDrive isDisabled={state.step != AttendeeStep.ready ? true : isFirstQuestion()}
                 variant={ButtonVariant.secondary}
                 text="Previous" handle={jumpPreviousQuestion}/>
             </ToolbarItem>
             <ToolbarItem>
-              <ButtonDrive isDisabled={step != AttendeeStep.ready ? true : isLastQuestion()}
+              <ButtonDrive isDisabled={state.step != AttendeeStep.ready ? true : isLastQuestion()}
                 variant={ButtonVariant.primary}
                 text="Next" handle={jumpNextQuestion}/>
             </ToolbarItem>
             <ToolbarItem variant={ToolbarItemVariant.separator}/>
             <ToolbarItem>
-              <Button isDisabled={step != AttendeeStep.ready}
+              <Button isDisabled={state.step != AttendeeStep.ready}
                     variant={ButtonVariant.danger} onClick={finishSurvey}>Finish</Button>
             </ToolbarItem>
           </ToolbarContent>
@@ -152,12 +205,12 @@ export const SpeakerQuestions: React.FunctionComponent<SpeakerQuestionsProps> = 
       </PageSection>
       <PageSection variant="default">
         <Grid hasGutter>
-          { loadingQuestions && ( <Wait/>) }
-          { !loadingQuestions && (
+          { state.loadingQuestions && ( <Wait/>) }
+          { !state.loadingQuestions && (
             <React.Fragment>
-              <Question question={currentQuestion == 0 ? null : questions[currentQuestion-1]}/>
-              <Question isCurrent question={questions[currentQuestion]}/>
-              <Question question={currentQuestion < questions.length ? questions[currentQuestion+1] : null}/>
+              <Question question={state.currentQuestion == 0 ? null : previousQuestion()}/>
+              <Question isCurrent question={currentQuestion()}/>
+              <Question question={state.currentQuestion < questions.current.length ? nextQuestion() : null}/>
             </React.Fragment>
           )}
           <ListOfUsers attendees={attendees}/>
@@ -200,15 +253,14 @@ const Question: React.FunctionComponent<QuestionProps> = ({ question, isCurrent 
   );
 };
 
-const ListOfUsers: React.FunctionComponent<{ attendees: (IRow | string[])[] }> = ({ attendees }) => {
-
+const ListOfUsers: React.FunctionComponent<{ attendees: Array<Attendee> }> = ({ attendees }) => {
   return (
     <GridItem rowSpan={1}>
       <Card>
         <Table
           aria-label="Bulk Select Table Demo"
           cells={[{ title: 'Rank' }, { title: 'Points' }, { title: 'First Name' }, { title: 'Second Name' }]}
-          rows={attendees}
+          rows={turnAttendeeIntoRows(attendees)}
         >
           <TableHeader />
           <TableBody />
@@ -227,9 +279,9 @@ interface ButtonDriveProps {
 
 const ButtonDrive: React.FunctionComponent<ButtonDriveProps> = ({ text, variant, isDisabled, handle }) => {
 
-  React.useEffect(() => {
-    console.log(`ButtonDrive Text:${text} isDisabled:${isDisabled}`);
-  }, []);
+  // React.useEffect(() => {
+  //   console.log(`ButtonDrive Text:${text} isDisabled:${isDisabled}`);
+  // }, []);
 
   return (
      isDisabled ? 
