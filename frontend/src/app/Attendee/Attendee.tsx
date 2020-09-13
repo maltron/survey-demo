@@ -214,9 +214,11 @@ export const AttendeeSurvey: React.FunctionComponent<{ survey: number }> = ({ su
             }
         });
 
-        // If Correct, compute the amount of points
+        // TOTAL POINTS CALCULATION
+        // If Correct, compute the amount of points will be
+        // Question.points * state.countDown
         if(isCorrect) {
-            attendee.current.points += question.points;
+            attendee.current.points += question.points*state.countDown;
             sendWebSocket(websocket, { name: Option.AttendeeScored, 
                 data: { surveyID: survey, attendee: attendee.current }});
         }

@@ -75,7 +75,7 @@ export const AttendeeQuestion: React.FunctionComponent<AttendeeQuestionProps>
         switch(state.answerState.type) {
             case AnswerType.correct:
                 return <Label icon={<InfoCircleIcon/>} 
-                color="green">+{question.points} points</Label>
+                color="green">+{question.points*state.countDown} points</Label>
             case AnswerType.incorrect:
                 return <Label icon={<InfoCircleIcon/>}
                 color="red">ZERO points</Label>
