@@ -14,8 +14,8 @@ insert into survey_question_has_answers(questionID, answerID) values(11,39);
 
 insert into survey_question(ID, question, timer, points) values(12, 'A casa somente esta limpa quando', 12, 8);
 insert into survey_has_questions(surveyID, questionID) values(2, 12);
-insert into survey_answer(ID, answer) values(40, 'Quando a Natesta limpar', true);
-insert into survey_answer(ID, answer, is_correct) values(41, 'Quanto a Nina limpar');
+insert into survey_answer(ID, answer, is_correct) values(40, 'Quando a Natesta limpar', true);
+insert into survey_answer(ID, answer) values(41, 'Quanto a Nina limpar');
 insert into survey_answer(ID, answer) values(42, 'Quando o Papai limpar');
 insert into survey_answer(ID, answer) values(43, 'Quando alguém de fora limpar');
 insert into survey_question_has_answers(questionID, answerID) values(12, 40);
@@ -36,9 +36,9 @@ insert into survey_question_has_answers(questionID, answerID) values(13, 47);
 
 insert into survey_question(ID, question, timer, points) values(14, 'Eu quero saber a sua opinião, significa', 10, 12);
 insert into survey_has_questions(surveyID, questionID) values(2, 14);
-insert into survey_answer(ID, answer) values(48, 'Eu NÃO quero saber da sua opinião', true);
+insert into survey_answer(ID, answer, is_correct) values(48, 'Eu NÃO quero saber da sua opinião', true);
 insert into survey_answer(ID, answer) values(49, 'Eu estou cansada e vou dormir');
-insert into survey_answer(ID, answer, is_correct) values(50, 'Deixa eu ver um programa russo');
+insert into survey_answer(ID, answer) values(50, 'Deixa eu ver um programa russo');
 insert into survey_question_has_answers(questionID, answerID) values(14, 48);
 insert into survey_question_has_answers(questionID, answerID) values(14, 49);
 insert into survey_question_has_answers(questionID, answerID) values(14, 50);
@@ -58,8 +58,8 @@ insert into survey_question(ID, question, timer, points) values(16, 'A coisa mai
 insert into survey_has_questions(surveyID, questionID) values(2, 16);
 insert into survey_answer(ID, answer) values(55, 'Agua Pelegrine');
 insert into survey_answer(ID, answer) values(56, 'Trabalho');
-insert into survey_answer(ID, answer) values(57, 'Selfie, Maquiagem e Compras online na Zara', true);
-insert into survey_answer(ID, answer, is_correct) values(58, 'Aparência e a Nacionalidade dos atores no filme Mulan');
+insert into survey_answer(ID, answer, is_correct) values(57, 'Selfie, Maquiagem e Compras online na Zara', true);
+insert into survey_answer(ID, answer) values(58, 'Aparência e a Nacionalidade dos atores no filme Mulan');
 insert into survey_question_has_answers(questionID, answerID) values(16, 55);
 insert into survey_question_has_answers(questionID, answerID) values(16, 56);
 insert into survey_question_has_answers(questionID, answerID) values(16, 57);
