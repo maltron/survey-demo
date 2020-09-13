@@ -2,15 +2,21 @@ package survey
 
 import (
 	"log"
-	"github.com/maltron/survey-demo/backend/socket"
 	"github.com/mitchellh/mapstructure"
+	"github.com/maltron/survey-demo/backend/socket"
 	"github.com/maltron/survey-demo/backend/database"
+	"github.com/maltron/survey-demo/backend/model"
 )
 
 type speakerForSurvey struct {
 	SpeakerID int `json:"speakerID"`
 	SurveyID  int `json:"surveyID"`
 	QuestionID int `json:"questionID"`
+}
+
+type surveyQuestions struct {
+	SurveyID  int `json:"surveyID"`
+	Questions []model.Question `json:"questions"`
 }
 
 // SpeakerStartSurvey creates a new Session, so Attendees and Join
@@ -22,11 +28,12 @@ func SpeakerStartSurvey(client *socket.Client, data interface{}) {
 		return
 	}
 	// Create a Session based on SurveyID with no Attendees in it
-	sessions.create(speakerStartedSurvey)
-	log.Printf(">>> Speaker StartSurvey %#v\n", sessions)
+	// sessions.create(speakerStartedSurvey)
+	// log.Printf(">>> Speaker StartSurvey %#v\n", sessions)
 	if questions, err := database.GetSurveyQuestions(client.Connection, speakerStartedSurvey.SurveyID); err == nil {
 		log.Printf(">>> Sending Questions for this Survey")
-		client.Send <- socket.Command{ Name: "SurveyQuestions", Data: questions }
+		client.Send <- socket.Command{ Name: "SurveyQuestions", 
+			Data: surveyQuestions{ SurveyID: speakerStartedSurvey.SurveyID, Questions: questions } }
 	}
 }
 

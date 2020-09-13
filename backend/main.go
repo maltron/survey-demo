@@ -108,7 +108,8 @@ func main() {
 	websocketRouter.Handle("AttendeeStarted", survey.AttendeeStarted) // AttendeeStep.started
 	websocketRouter.Handle("AttendeeRegistration", survey.AttendeeRegistration)
 	websocketRouter.Handle("AttendeeAnswered", survey.AttendeeAnswered)
-	websocketRouter.Handle("AttendeeScored", survey.AttendeeScored)		
+	websocketRouter.Handle("AttendeeScored", survey.AttendeeScored)
+	websocketRouter.Handle("AttendeesForSurvey", survey.AttendeesForSurvey)
 	
 	handler := handlers.CORS(
 		handlers.AllowedOrigins([]string{"*"}),

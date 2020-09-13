@@ -13,39 +13,52 @@ type attendeeRegistration struct {
 	Attendee model.Attendee `json:"attendee"`
 }
 
+type attendeesForSurvey struct {
+	SurveyID int `json:"surveyID"`
+	Attendees []model.Attendee `json:"attendees"`
+}
+
+// AttendeesForSurvey List a existing list of Attendees will participate to a 
+// Survey
+func AttendeesForSurvey(client *socket.Client, data interface{}) {
+	log.Printf(">>> AttedeeStarted: %v\n", data)
+	var registration attendeeRegistration
+	if err := mapstructure.Decode(data, &registration); err != nil {
+		log.Printf("### AttendeesForSurvey Unable to Decode: %v\n", err)
+		return 
+	}
+
+	attendees, err := database.Attendees(client.Connection, registration.SurveyID)
+	if err != nil {
+		log.Printf("### AttendeesForSurvey Unable to Fetch Attendees: %v\n", err)
+	}
+
+	// Only Send information if there is any
+	if len(attendees) > 0 {
+		client.Send <- socket.Command{ Name: "AttendeeRegistered", 
+			Data: attendeesForSurvey{ SurveyID: registration.SurveyID, Attendees: attendees } }
+	}
+}
+
 // AttendeeStarted Attendee initiated a session in the 
-// Registration step
-// Attendee.started
 func AttendeeStarted(client *socket.Client, data interface{}) {
 	log.Printf(">>> AttedeeStarted: %v\n", data)
 	var registration attendeeRegistration
 	if err := mapstructure.Decode(data, &registration); err != nil {
 		log.Printf("### AttendeeStarted Unable to Decode: %v\n", err)
+		return 
 	}
 
 	// Fetch all the questions for this Survey and returns to 
 	// this particular Attendee
 	if questions, err := database.GetSurveyQuestions(client.Connection, registration.SurveyID); err == nil {
 		log.Printf(">>> AttendeeStarted Returning questions")
-		client.Send <- socket.Command{ Name: "SurveyQuestions", Data: questions }
+		client.Send <- socket.Command{ Name: "SurveyQuestions", 
+			Data: surveyQuestions{ SurveyID: registration.SurveyID, Questions: questions } }
 	}
 }
 
-
 // AttendeeRegistration The Attendee entered into a particular session
-// {
-// 	"name":"AttendeeRegistration",
-// 	"data":{
-// 	   "surveyID":1,
-// 	   "attendee":{
-// 		  "id":1,
-// 		  "firstName":"John",
-// 		  "lastName":"Smith",
-// 		  "email":"john@smith.com",
-// 		  "points":0
-// 	   }
-// 	}
-//  }
 func AttendeeRegistration(client *socket.Client, data interface{}) {
 	log.Printf(">>> AttendeeRegistration: %v\n", data)
 	var registration attendeeRegistration
@@ -58,10 +71,18 @@ func AttendeeRegistration(client *socket.Client, data interface{}) {
 	registration.Attendee.Survey = registration.SurveyID;
 
 	log.Printf(">>> AttendeeRegistration SaveAttendee: %v\n", registration.Attendee)
-	database.SaveAttendee(client.Connection, &registration.Attendee)
+	attendees, updated, err := database.SaveAttendee(client.Connection, &registration.Attendee)
+	if err != nil {
+		log.Printf("### AttendeeRegistration: Unable to Save Attendee: %v\n", err)
+		return
+	}
 	// Inform everyone an Attendee is Registered
 	log.Printf(">>> AttendeeRegistration SaveAttendee: AttendeeRegistered: %v\n", registration);
-	client.Hub.Broadcast <- socket.Command{ Name: "AttendeeRegistered", Data: registration }
+	// Only notify if there are any Attendees
+	if updated && len(attendees) > 0 {
+		client.Hub.Broadcast <- socket.Command{ Name: "AttendeeRegistered", 
+		Data: attendeesForSurvey{ SurveyID: registration.SurveyID, Attendees: attendees } }
+	}
 }
 
 // AttendeeAnswered Attendee answered a specific Question
@@ -86,8 +107,10 @@ func AttendeeScored(client *socket.Client, data interface{}) {
 		return 
 	}
 
-	if database.RecordPoints(client.Connection, registration.Attendee) {
-		client.Hub.Broadcast <- socket.Command{ Name: "AttendeeScored", Data: registration }
+	attendees, updated := database.RecordPoints(client.Connection, registration.Attendee)
+	if updated && len(attendees) > 0 { 
+		client.Hub.Broadcast <- socket.Command{ Name: "AttendeeScored", Data: 
+		attendeesForSurvey{ SurveyID: registration.SurveyID, Attendees: attendees } }
 	}	
 }
 

@@ -30,11 +30,11 @@ func AttendeeExists(database *Connection, attendee *model.Attendee) (bool, error
 }
 
 // SaveAttendee Either insert or update depending if Attendee exists or not 
-func SaveAttendee(database *Connection, attendee *model.Attendee) bool {
+func SaveAttendee(database *Connection, attendee *model.Attendee) ([]model.Attendee, bool, error) {
 	found, err := AttendeeExists(database, attendee)
 	if err != nil {
 		log.Printf("### SaveAttendee Failed: %v\n", err)
-		return false
+		return []model.Attendee{}, false, err
 	}
 
 	// Update or Insert ?
@@ -49,7 +49,7 @@ func SaveAttendee(database *Connection, attendee *model.Attendee) bool {
 	defer statement.Close()
 	if err != nil {
 		log.Printf("### SaveAttendee: Prepare Unable to Store Attendee: %v\n", err)
-		return false
+		return []model.Attendee{}, false, err
 	}
 
 	var result sql.Result
@@ -57,15 +57,18 @@ func SaveAttendee(database *Connection, attendee *model.Attendee) bool {
 		result, err = statement.Exec(attendee.FirstName, attendee.LastName, attendee.Email, attendee.ID)
 		if err != nil {
 			log.Printf("### SaveAttendee: Exec Unable to <UPDATE>: %v\n", err)
+			return []model.Attendee{}, false, err
 		}
 	} else {
 		result, err = statement.Exec(attendee.FirstName, attendee.LastName, attendee.Email, attendee.Survey)
 		if err != nil {
 			log.Printf("### SaveAttendee: Exec Unable to <INSERT>: %v\n", err)
+			return []model.Attendee{}, false, err
 		}
 		// Update information regarding Attendee.ID
 		if attendee.ID, err = result.LastInsertId(); err != nil {
 			log.Printf("### SaveAttendee: LastInsertId() Unable to Update attendee.ID: %v\n", err)
+			return []model.Attendee{}, false, err
 		}
 	}
 
@@ -73,35 +76,68 @@ func SaveAttendee(database *Connection, attendee *model.Attendee) bool {
 	rows, err := result.RowsAffected()
 	if err != nil {
 		log.Printf("### SaveAttendee: RowsAffected(): %v\n", err)
-		return false
+		return []model.Attendee{}, false, err
 	}
 
-	return rows > 0
+	attendees, err := Attendees(database, attendee.Survey)
+	if err != nil {
+		return []model.Attendee{}, false, err
+	}
+
+	return attendees, rows > 0, nil
 }
 
-// RecordPoints save the score of this Attendee
-func RecordPoints(database *Connection, attendee model.Attendee) bool {
+// RecordPoints save the score of this Attendee and returns a list
+// of all attendees sorted by rank, to be used as a Ranking Dashboard
+func RecordPoints(database *Connection, attendee model.Attendee) ([]model.Attendee, bool) {
 	var query string = "update survey_attendee set points=? where ID = ?"
 	statement, err := database.connection.Prepare(query)
 	defer statement.Close()
 	if err != nil {
 		log.Printf("### RecordPoints Failed Prepare: %v\n", err)
-		return false
+		return []model.Attendee{}, false
 	}
 
 	result, err := statement.Exec(attendee.Points, attendee.ID)
 	if err != nil {
 		log.Printf("### RecordPoints Failed Exec: %v\n", err)
-		return false
+		return []model.Attendee{}, false
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
 		log.Printf("### RecordPoints Failed RowsAffected: %v\n", err)
-		return false
+		return []model.Attendee{}, false
 	}
 
-	return rows > 0
+	attendees, err := Attendees(database, attendee.Survey)
+	if err != nil {
+		return []model.Attendee{}, false
+	}
+
+	return attendees, rows > 0
+}
+
+// Attendees Returns a list of all Attendees for a particular Survey
+func Attendees(database *Connection, surveyID int) ([]model.Attendee, error) {
+	query := fmt.Sprintf("select ID, firstname, lastname, email, points, surveyID from survey_attendee where surveyID = %d order by points desc", surveyID)
+	rows, err := database.connection.Query(query)
+	defer rows.Close()
+	if err != nil {
+		return []model.Attendee{}, err
+	}
+
+	var attendees []model.Attendee
+	for rows.Next() {
+		var attendee model.Attendee
+		if err := rows.Scan(&attendee.ID, &attendee.FirstName, &attendee.LastName,
+			&attendee.Email, &attendee.Points, &attendee.Survey); err != nil {
+			return []model.Attendee{}, err
+		}
+		attendees = append(attendees, attendee)
+	}
+
+	return attendees, nil
 }
 
 // RecordAttendeeAnswered Stores the information of a particular Answer into the database

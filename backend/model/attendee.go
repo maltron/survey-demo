@@ -12,7 +12,7 @@ import (
 
 // Attendee Represents information regarding each Attendee
 type Attendee struct {
-	ID        int64  `json:"id"`
+	ID        int64  `json:"ID"`
 	FirstName string `json:"firstName"`
 	LastName  string `json:"lastName"`
 	Email     string `json:"email"`
