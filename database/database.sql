@@ -45,7 +45,7 @@ insert into survey_question_has_answers(questionID, answerID) values(1,2);
 insert into survey_question_has_answers(questionID, answerID) values(1,3);
 insert into survey_question_has_answers(questionID, answerID) values(1,4);
 
-insert into survey_question(ID, question, timer, points) values(2, 'What is the Capital of Bolivia ?', 25, 60);
+insert into survey_question(ID, question, timer, points) values(2, 'What is the Capital of Bolivia ?', 20, 60);
 insert into survey_has_questions(surveyID, questionID) values(1, 2);
 insert into survey_answer(ID, answer) values(5, 'Lima');
 insert into survey_answer(ID, answer, is_correct) values(6, 'La Paz', true);
@@ -56,7 +56,7 @@ insert into survey_question_has_answers(questionID, answerID) values(2, 6);
 insert into survey_question_has_answers(questionID, answerID) values(2, 7);
 insert into survey_question_has_answers(questionID, answerID) values(2, 8);
 
-insert into survey_question(ID, question, timer, points) values(3, 'What is the Capital of Ghana ?', 25, 50);
+insert into survey_question(ID, question, timer, points) values(3, 'What is the Capital of Ghana ?', 17, 50);
 insert into survey_has_questions(surveyID, questionID) values(1, 3);
 insert into survey_answer(ID, answer) values(9, 'Lisbon');
 insert into survey_answer(ID, answer) values(10, 'Seville');
@@ -67,7 +67,7 @@ insert into survey_question_has_answers(questionID, answerID) values(3, 10);
 insert into survey_question_has_answers(questionID, answerID) values(3, 11);
 insert into survey_question_has_answers(questionID, answerID) values(3, 12);
 
-insert into survey_question(ID, question, timer, points) values(4, 'What is the Capital of South Africa ?', 25, 50);
+insert into survey_question(ID, question, timer, points) values(4, 'What is the Capital of South Africa ?', 15, 50);
 insert into survey_has_questions(surveyID, questionID) values(1, 4);
 insert into survey_answer(ID, answer) values(13, 'Tokyo');
 insert into survey_answer(ID, answer) values(14, 'Marquiville');
@@ -78,7 +78,7 @@ insert into survey_question_has_answers(questionID, answerID) values(4, 14);
 insert into survey_question_has_answers(questionID, answerID) values(4, 15);
 insert into survey_question_has_answers(questionID, answerID) values(4, 16);
 
-insert into survey_question(ID, question, timer, points) values(5, 'What is the Capital of Thailand ?', 25, 50);
+insert into survey_question(ID, question, timer, points) values(5, 'What is the Capital of Thailand ?', 14, 50);
 insert into survey_has_questions(surveyID, questionID) values(1, 5);
 insert into survey_answer(ID, answer, is_correct) values(17, 'Bangkok', true);
 insert into survey_answer(ID, answer) values(18, 'Manila');
@@ -89,7 +89,7 @@ insert into survey_question_has_answers(questionID, answerID) values(5, 18);
 insert into survey_question_has_answers(questionID, answerID) values(5, 19);
 insert into survey_question_has_answers(questionID, answerID) values(5, 20);
 
-insert into survey_question(ID, question, timer, points) values(6, 'What is the Capital of Iceland ?', 25, 50);
+insert into survey_question(ID, question, timer, points) values(6, 'What is the Capital of Iceland ?', 10, 50);
 insert into survey_has_questions(surveyID, questionID) values(1, 6);
 insert into survey_answer(ID, answer) values(21, 'Copehangen');
 insert into survey_answer(ID, answer) values(22, 'Berlin');
@@ -100,7 +100,7 @@ insert into survey_question_has_answers(questionID, answerID) values(6, 22);
 insert into survey_question_has_answers(questionID, answerID) values(6, 23);
 insert into survey_question_has_answers(questionID, answerID) values(6, 24);
 
-insert into survey_question(ID, question, timer, points) values(7, 'What is the Capital of Nicaragua ?', 25, 50);
+insert into survey_question(ID, question, timer, points) values(7, 'What is the Capital of Nicaragua ?', 7, 50);
 insert into survey_has_questions(surveyID, questionID) values(1, 7);
 insert into survey_answer(ID, answer) values(25, 'Buenos Aires');
 insert into survey_answer(ID, answer) values(26, 'Miami');
@@ -156,21 +156,21 @@ create table if not exists survey_attendee(ID int not null auto_increment, first
 delete from survey_attendee;
 
 # Adding some users for testing
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(1, 'Anão', 'Caçamba', 'anao@cacamba.com', 1);
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(2, '你好', '世界', 'hello@world.com', 1);
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(3, 'John','Smith', 'john@smith.com', 1);
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(4, 'Ada','Lovelace', 'ada@lovelace.com', 1);
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(5, 'Steve','Jobs', 'steve@jobs.com', 1);
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(6, 'Mark','Hamill', 'mark@hamill.com', 1);
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(7, 'Zod','Destroyer', 'zod@destroyer.com', 1);
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(8, 'Sandra','Bullock', 'sandra@bullock.com', 1);
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(9, 'William','Smith', 'william@smith.com', 1);
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(10, 'Keanu','Reeves', 'keanu@reeves.com', 1);
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(11, 'Han','Solo', 'han@solo.com', 1);
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(12, 'Harry','Porter', 'harry@porter.com', 1);
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(13, 'Donald','Trump', 'donald@trump.com', 1);
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(14, 'Serena','Williams', 'serena@williams.com', 1);
-insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(15, 'Cassandra','Clark', 'cassandra@clark.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(1, 'Anão', 'Caçamba', 'anao@cacamba.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(2, '你好', '世界', 'hello@world.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(3, 'John','Smith', 'john@smith.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(4, 'Ada','Lovelace', 'ada@lovelace.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(5, 'Steve','Jobs', 'steve@jobs.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(6, 'Mark','Hamill', 'mark@hamill.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(7, 'Zod','Destroyer', 'zod@destroyer.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(8, 'Sandra','Bullock', 'sandra@bullock.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(9, 'William','Smith', 'william@smith.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(10, 'Keanu','Reeves', 'keanu@reeves.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(11, 'Han','Solo', 'han@solo.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(12, 'Harry','Porter', 'harry@porter.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(13, 'Donald','Trump', 'donald@trump.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(14, 'Serena','Williams', 'serena@williams.com', 1);
+-- insert into survey_attendee(ID, firstName, lastName, email, surveyID) values(15, 'Cassandra','Clark', 'cassandra@clark.com', 1);
 
 # Survey Attendees Answers
 create table if not exists survey_attendee_answered(ID int not null auto_increment, surveyID int not null, attendeeID int not null, questionID int not null, answerID int not null, foreign key(surveyID) references survey(ID), foreign key(questionID) references survey_question(ID), foreign key(attendeeID) references survey_attendee(ID), foreign key(answerID) references survey_answer(ID), unique(surveyID, attendeeID, questionID), primary key(ID));
